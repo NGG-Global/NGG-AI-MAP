@@ -18,9 +18,14 @@ export interface CreateDbOptions {
 
 const MIGRATIONS_FOLDER = path.join(process.cwd(), "drizzle");
 
+/** Hosting dashboards sometimes store values with surrounding quotes; strip them defensively. */
+function cleanEnv(value: string | undefined): string {
+  return (value ?? "").trim().replace(/^["']+|["']+$/g, "").trim();
+}
+
 export function resolveTarget(explicit?: string): string {
   if (explicit) return explicit;
-  const url = process.env.DATABASE_URL?.trim();
+  const url = cleanEnv(process.env.DATABASE_URL);
   if (url) return url;
   return path.join(process.cwd(), ".data", "pglite");
 }
