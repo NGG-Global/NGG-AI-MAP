@@ -35,7 +35,7 @@ export async function createDb(options: CreateDbOptions = {}): Promise<Db> {
   if (target.startsWith("postgres://") || target.startsWith("postgresql://")) {
     const pool = new Pool({ connectionString: target, ssl: sslOptions(target) });
     const database = drizzlePg(pool, { schema });
-    if (options.runMigrations) await migratePg(database, { migrationsFolder: MIGRATIONS_FOLDER });
+    if (options.runMigrations) await withMigrationLock(pool, () => migratePg(database, { migrationsFolder: MIGRATIONS_FOLDER }));
     return database;
   }
   // PGlite (embedded Postgres) is only used for local development and tests; load it on demand so
@@ -47,6 +47,28 @@ export async function createDb(options: CreateDbOptions = {}): Promise<Db> {
   const database = drizzlePglite(client, { schema });
   if (options.runMigrations) await migratePglite(database, { migrationsFolder: MIGRATIONS_FOLDER });
   return database;
+}
+
+const MIGRATION_LOCK_KEY = 7342001;
+
+/**
+ * Serialises migrations across concurrent app instances (serverless cold starts). The advisory lock
+ * is transaction-scoped on a dedicated connection, so it also works through transaction-mode poolers.
+ * Instances that arrive second wait for the lock, then find the migrations already recorded and skip.
+ */
+async function withMigrationLock(pool: Pool, run: () => Promise<void>): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock($1)", [MIGRATION_LOCK_KEY]);
+    await run();
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 /**
