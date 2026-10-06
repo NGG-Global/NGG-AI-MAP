@@ -16,34 +16,34 @@ phases land.
 - [x] Tests: tenant isolation, role permissions
 
 ## Phase 2 — Questionnaire system
-- [ ] Section Library + Question Library with source type and research status badges
-- [ ] Questionnaire definition schema (Zod) and versioning (draft → locked → next version)
-- [ ] Builder: add/remove/reorder sections, audience, display logic (field → operator → value)
-- [ ] Custom questions; locked validated items with "create custom copy"
-- [ ] Summary panel: questions, employee/manager counts, time, validated/custom items, comparability
-- [ ] Preview by persona
-- [ ] Tests: locked validated questions, versioning, custom copy detachment
+- [x] Section Library + Question Library with source type and research status badges
+- [x] Questionnaire definition schema (Zod) and versioning (draft → locked → next version)
+- [x] Builder: add/remove/reorder sections, audience, display logic (field → operator → value)
+- [x] Custom questions; locked validated items with "create custom copy"
+- [x] Summary panel: questions, employee/manager counts, time, validated/custom items, comparability
+- [x] Preview by persona
+- [x] Tests: locked validated questions, versioning, custom copy detachment
 
 ## Phase 3 — Waves
-- [ ] Create baseline / follow-up wave (duplicate previous questionnaire by default)
-- [ ] Snapshot freezing on publish; close wave
-- [ ] Comparability calculation and diff (added / removed / modified / metrics affected)
-- [ ] Audience, dates, distribution mode, privacy mode
-- [ ] Response monitoring (invited / started / completed / rate / per day)
-- [ ] Tests: snapshots, comparability
+- [x] Create baseline / follow-up wave (duplicate previous questionnaire by default)
+- [x] Snapshot freezing on publish; close wave
+- [x] Comparability calculation and diff (added / removed / modified / metrics affected)
+- [x] Audience, dates, distribution mode, privacy mode
+- [x] Response monitoring (invited / started / completed / rate / per day)
+- [x] Tests: snapshots, comparability
 
 ## Phase 4 — Respondent survey
-- [ ] Landing, section intro, question screens, completion; mobile-first RTL with LTR support
-- [ ] Autosave per answer, resume, progress indicator
-- [ ] Server-side routing (employee / manager / non-AI-user), "prefer not to answer"
-- [ ] Anonymous and pseudonymous respondents; client branding
-- [ ] Tests: routing
+- [x] Landing, section intro, question screens, completion; mobile-first RTL with LTR support
+- [x] Autosave per answer, resume, progress indicator
+- [x] Server-side routing (employee / manager / non-AI-user), "prefer not to answer"
+- [x] Anonymous and pseudonymous respondents; client branding
+- [x] Tests: routing
 
 ## Phase 5 — Measurement engine
-- [ ] Config-driven scoring: reverse coding, missing handling, normalisation, segments
-- [ ] Wave comparison, deltas, comparability-aware metrics
-- [ ] Manager–team gaps, response counts, privacy suppression
-- [ ] Tests: calculations and suppression
+- [x] Config-driven scoring: reverse coding, missing handling, normalisation, segments
+- [x] Wave comparison, deltas, comparability-aware metrics
+- [x] Manager–team gaps, response counts, privacy suppression
+- [x] Tests: calculations and suppression
 
 ## Phase 6 — Dashboards, AI, goals
 - [ ] NGG portfolio dashboard and attention panel

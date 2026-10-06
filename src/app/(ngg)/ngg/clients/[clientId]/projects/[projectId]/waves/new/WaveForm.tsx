@@ -23,13 +23,8 @@ export interface WaveFormProps {
   wave?: Wave;
 }
 
-export function WaveForm({ t, locale, clientId, projectId, type, departments, versions, previousWaveCode, defaultLocale, wave }: WaveFormProps) {
-  const w = t.waves;
-  const [state, action] = useActionState(wave ? updateWaveAction : createWaveAction, null);
-  const [scope, setScope] = useState(wave?.audience.scope ?? "all_organization");
-  const [distribution, setDistribution] = useState(wave?.distributionMode ?? "public_link");
-  const editable = !wave || wave.status === "draft";
-  const Step = ({ n, title }: { n: number; title: string }) => (
+function Step({ n, title }: { n: number; title: string }) {
+  return (
     <h3 className="flex items-center gap-2 text-[15px] font-bold">
       <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-ink text-[12px] text-white" dir="ltr">
         {n}
@@ -37,6 +32,14 @@ export function WaveForm({ t, locale, clientId, projectId, type, departments, ve
       {title}
     </h3>
   );
+}
+
+export function WaveForm({ t, locale, clientId, projectId, type, departments, versions, previousWaveCode, defaultLocale, wave }: WaveFormProps) {
+  const w = t.waves;
+  const [state, action] = useActionState(wave ? updateWaveAction : createWaveAction, null);
+  const [scope, setScope] = useState(wave?.audience.scope ?? "all_organization");
+  const [distribution, setDistribution] = useState(wave?.distributionMode ?? "public_link");
+  const editable = !wave || wave.status === "draft";
   return (
     <form action={action} className="flex flex-col gap-6">
       <input type="hidden" name="clientId" value={clientId} />

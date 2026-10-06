@@ -226,6 +226,8 @@ export async function closeWave(ctx: ServiceContext, waveId: string): Promise<Wa
   const now = new Date();
   const [updated] = await ctx.db.update(waves).set({ status: "closed", closedAt: now, updatedAt: now }).where(eq(waves.id, waveId)).returning();
   await recordAudit(ctx, { action: "wave.closed", entityType: "wave", entityId: waveId, clientId: client.id, projectId: wave.projectId, metadata: { code: wave.code } });
+  const { computeWaveResults } = await import("./results");
+  await computeWaveResults(ctx, waveId);
   return updated!;
 }
 
