@@ -1,22 +1,27 @@
 /** Centralised, validated access to environment variables. Never read `process.env` elsewhere. */
+function clean(value: string | undefined): string | undefined {
+  const v = (value ?? "").trim().replace(/^["']+|["']+$/g, "").trim();
+  return v || undefined;
+}
+
 export const env = {
   get sessionSecret(): string {
-    return process.env.SESSION_SECRET?.trim() || "dev-only-insecure-secret-change-me";
+    return clean(process.env.SESSION_SECRET) || "dev-only-insecure-secret-change-me";
   },
   get appUrl(): string {
-    return (process.env.APP_URL?.trim() || "http://localhost:3000").replace(/\/$/, "");
+    return (clean(process.env.APP_URL) || "http://localhost:3000").replace(/\/$/, "");
   },
   get aiProvider(): "mock" | "openai_compatible" {
-    return process.env.AI_PROVIDER === "openai_compatible" ? "openai_compatible" : "mock";
+    return clean(process.env.AI_PROVIDER) === "openai_compatible" ? "openai_compatible" : "mock";
   },
   get aiBaseUrl(): string | undefined {
-    return process.env.AI_BASE_URL?.trim() || undefined;
+    return clean(process.env.AI_BASE_URL);
   },
   get aiApiKey(): string | undefined {
-    return process.env.AI_API_KEY?.trim() || undefined;
+    return clean(process.env.AI_API_KEY);
   },
   get aiModel(): string | undefined {
-    return process.env.AI_MODEL?.trim() || undefined;
+    return clean(process.env.AI_MODEL);
   },
   get isProduction(): boolean {
     return process.env.NODE_ENV === "production";

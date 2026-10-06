@@ -9,7 +9,11 @@ const globalForDb = globalThis as unknown as { __nggDb?: Promise<Db> };
 
 export function db(): Promise<Db> {
   if (!globalForDb.__nggDb) {
-    globalForDb.__nggDb = createDb({ runMigrations: true });
+    // A failed connection or migration must not be cached, or the instance would stay broken.
+    globalForDb.__nggDb = createDb({ runMigrations: true }).catch((error: unknown) => {
+      globalForDb.__nggDb = undefined;
+      throw error;
+    });
   }
   return globalForDb.__nggDb;
 }

@@ -10,7 +10,7 @@ import { env } from "@/server/shared/env";
 import { field, runAction, type ActionState } from "@/server/ui/actions";
 
 function tokenMatches(provided: string): boolean {
-  const expected = process.env.SETUP_TOKEN?.trim() ?? "";
+  const expected = (process.env.SETUP_TOKEN ?? "").trim().replace(/^["']+|["']+$/g, "").trim();
   if (!expected || !provided) return false;
   const a = Buffer.from(provided);
   const b = Buffer.from(expected);
