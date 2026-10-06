@@ -453,6 +453,26 @@ export const metricResults = pgTable(
   (t) => [uniqueIndex("metric_results_unique_idx").on(t.waveId, t.metricId, t.segmentKey, t.segmentValue)],
 );
 
+/** Answer distributions for choice/matrix items (barriers, work patterns, delegation map), aggregated and suppressed. */
+export const distributionResults = pgTable(
+  "distribution_results",
+  {
+    id: text("id").primaryKey(),
+    waveId: text("wave_id")
+      .notNull()
+      .references(() => waves.id, { onDelete: "cascade" }),
+    itemCanonicalId: text("item_canonical_id").notNull(),
+    segmentKey: text("segment_key").notNull().default("all"),
+    segmentValue: text("segment_value").notNull().default("all"),
+    /** option value (or `row|column` for matrix items) → share of respondents (0–100). */
+    buckets: jsonb("buckets").$type<Record<string, number>>().notNull(),
+    n: integer("n").notNull(),
+    suppressed: boolean("suppressed").notNull().default(false),
+    computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("distribution_results_unique_idx").on(t.waveId, t.itemCanonicalId, t.segmentKey, t.segmentValue)],
+);
+
 /* --------------------------------------------------------------- insights */
 
 export const insights = pgTable(
@@ -569,6 +589,7 @@ export type Wave = typeof waves.$inferSelect;
 export type Respondent = typeof respondents.$inferSelect;
 export type Response = typeof responses.$inferSelect;
 export type MetricResult = typeof metricResults.$inferSelect;
+export type DistributionResult = typeof distributionResults.$inferSelect;
 export type Insight = typeof insights.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;

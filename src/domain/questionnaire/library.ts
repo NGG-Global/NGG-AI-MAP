@@ -12,6 +12,8 @@ export interface QuestionTemplateContent {
   displayRules?: DisplayRule[];
   allowPreferNotToAnswer?: boolean;
   wordingStatus?: "final" | "placeholder" | "illustrative";
+  segmentKey?: "department" | "role_family" | "is_manager" | "seniority" | "location";
+  optionsFrom?: "departments" | "roleFamilies" | "seniorityGroups" | "locations";
 }
 
 export const LIKERT_5_LABELS: LocalizedText[] = [

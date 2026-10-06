@@ -3,6 +3,7 @@ import type { Db } from "@/server/db/connection";
 import { clients, projectAssignments, projects, users, workspaces } from "@/server/db/schema";
 import { hashPassword } from "@/server/auth/password";
 import { newId } from "@/lib/ids";
+import { seedLibrary } from "./library";
 
 export interface SeedOptions {
   password: string;
@@ -23,6 +24,7 @@ async function wipe(db: Db): Promise<void> {
     "goals",
     "insights",
     "metric_results",
+    "distribution_results",
     "identity_map",
     "responses",
     "respondents",
@@ -51,6 +53,7 @@ export async function seedDemo(db: Db, options: SeedOptions): Promise<SeedSummar
   const passwordHash = await hashPassword(options.password);
   const workspaceId = DEMO_WORKSPACE_ID;
   await db.insert(workspaces).values({ id: workspaceId, name: "NGG" });
+  await seedLibrary(db);
 
   const nggUsers = [
     { id: newId(), email: "admin@ngg.demo", name: "דור ורדי", nggRole: "super_admin" as const },

@@ -68,6 +68,10 @@ export const questionDefinitionSchema = z.object({
   displayRules: z.array(displayRuleSchema).default([]),
   /** Wording provenance flag for the methodology page and builder notices. */
   wordingStatus: z.enum(["final", "placeholder", "illustrative"]).default("final"),
+  /** When set, the answer becomes a respondent segment attribute (department, is_manager, …). */
+  segmentKey: z.enum(["department", "role_family", "is_manager", "seniority", "location"]).optional(),
+  /** Library-only hint: options are materialised from the client's segment taxonomy at build time. */
+  optionsFrom: z.enum(["departments", "roleFamilies", "seniorityGroups", "locations"]).optional(),
 });
 export type QuestionDefinition = z.infer<typeof questionDefinitionSchema>;
 
