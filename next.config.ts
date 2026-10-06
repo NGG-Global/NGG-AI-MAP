@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   // Migrations are applied at runtime from ./drizzle; make sure serverless bundles carry the folder.
   outputFileTracingIncludes: {
     "/*": ["./drizzle/**/*"],
+    "/**/*": ["./drizzle/**/*"],
   },
 };
 
