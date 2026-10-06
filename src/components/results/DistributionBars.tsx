@@ -11,7 +11,7 @@ export function DistributionBars({ distribution, question, locale, threshold, or
   if (!distribution || distribution.suppressed) return <PrivacyProtected locale={locale} compact threshold={threshold} />;
   let entries = (question?.options ?? Object.keys(distribution.buckets).map((value) => ({ value, label: { he: value, en: value } }))).map((o) => ({
     value: o.value,
-    label: lt(o.label, locale),
+    label: lt(o.label, locale).split(" — ")[0]!,
     share: distribution.buckets[o.value] ?? 0,
     baselineShare: baseline && !baseline.suppressed ? baseline.buckets[o.value] : undefined,
   }));

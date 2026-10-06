@@ -41,6 +41,26 @@ All demo organisations, people and numbers are fictional.
 | `npm run build` | production build |
 | `npm run check` | all of the above |
 
+## What the demo contains
+
+- **גמא תעשיות** — two closed waves (T0 January 2026, T1 September 2026), published executive
+  summaries and open-text themes, one draft "explain change" insight in the review queue, three active
+  management goals shown on the client dashboard and one AI-suggested goal awaiting approval.
+- **אלפא פיננסים** — a baseline wave currently collecting (low response rate shows in the attention panel).
+- **בטא בריאות** — a questionnaire in draft, no wave yet.
+
+Validated-scale items are seeded with placeholder wording (marked in the builder) because the original
+wording must be inserted from the licensed source by NGG's methodology lead. NGG measure wording is
+illustrative pending methodological approval.
+
+## AI provider
+
+`AI_PROVIDER=mock` (default) uses a deterministic provider that only restates numbers from the
+aggregated payload. Set `AI_PROVIDER=openai_compatible` with `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL`
+to call any OpenAI-compatible chat-completions endpoint (Groq, Cloudflare Workers AI, gateways).
+All calls go through `src/server/ai`; outputs are validated against Zod schemas, unknown metric ids are
+rejected, causal language is flagged, and every insight starts as a draft for NGG review.
+
 ## Database
 
 By default the app runs on PGlite, an embedded PostgreSQL, stored in `./.data/pglite`. Set

@@ -228,3 +228,24 @@ export async function getMetricTrend(ctx: ServiceContext, projectId: string, met
     return { wave: w, score: r?.suppressed ? null : (r?.score ?? null), n: r?.n ?? 0, suppressed: r?.suppressed ?? false, computed: Boolean(r) };
   });
 }
+
+/** One metric broken down by a segment key for the current and baseline wave (suppressed aggregates only). */
+export async function getMetricBySegments(ctx: ServiceContext, waveId: string, metricId: string, segmentKey: SegmentKey) {
+  const [wave] = await ctx.db.select().from(waves).where(eq(waves.id, waveId)).limit(1);
+  if (!wave) throw new NotFoundError("wave");
+  await requireProject(ctx, wave.projectId, "results.view_aggregate");
+  const waveIds = [wave.id, ...(wave.baselineWaveId ? [wave.baselineWaveId] : [])];
+  const rows = await ctx.db
+    .select()
+    .from(metricResults)
+    .where(and(inArray(metricResults.waveId, waveIds), eq(metricResults.metricId, metricId), eq(metricResults.segmentKey, segmentKey)));
+  const values = [...new Set(rows.map((r) => r.segmentValue))].sort();
+  return values.map((value) => {
+    const cur = rows.find((r) => r.waveId === wave.id && r.segmentValue === value);
+    const base = wave.baselineWaveId ? rows.find((r) => r.waveId === wave.baselineWaveId && r.segmentValue === value) : undefined;
+    const suppressed = !cur || cur.suppressed;
+    const score = suppressed ? null : cur.score;
+    const baselineScore = base && !base.suppressed ? base.score : null;
+    return { value, score, n: suppressed ? 0 : cur.n, suppressed, baselineScore, delta: score != null && baselineScore != null ? Math.round((score - baselineScore) * 100) / 100 : null };
+  });
+}

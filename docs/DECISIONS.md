@@ -32,3 +32,18 @@ Additional engineering decisions:
 - **English is supported through the same dictionary mechanism as Hebrew** (`lib/i18n`), with the
   respondent locale taken from the wave, and the user locale from the user profile.
 - **Ranking question type, benchmarks, PDF export, snapshot links, SSO** are not built (spec §47–48).
+
+Decisions made during implementation:
+
+- **Comparability is item-based.** A metric is "fully comparable" when every baseline item that feeds it
+  is present and unchanged in the follow-up questionnaire. Partial comparability is shown as a caution
+  note; non-comparable metrics never receive a delta.
+- **Pseudonymous mode stores only an HMAC of the email** in `identity_map`; the respondent row carries
+  a random hash. Anonymous public links create a respondent per browser session (cookie scoped to the
+  survey path).
+- **Manager–team gaps are computed as team minus managers** so a negative number reads as "employees
+  experience less than managers report" (spec §25.2 example: −0.9).
+- **AI "explain change" never rewrites text.** Causal wording is flagged for the reviewer; the reviewer
+  edits the paragraph before publishing.
+- **Goal baselines are captured from the latest closed wave at creation time** and compared with the
+  latest closed wave afterwards, so a goal created between T0 and T1 shows its delta once T1 closes.

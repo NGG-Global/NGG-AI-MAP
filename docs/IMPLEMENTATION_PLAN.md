@@ -46,12 +46,12 @@ phases land.
 - [x] Tests: calculations and suppression
 
 ## Phase 6 — Dashboards, AI, goals
-- [ ] NGG portfolio dashboard and attention panel
-- [ ] NGG client workspace: results, insights, goals
-- [ ] Client executive dashboard: overview, adoption, management, organization, trends, goals, methodology
-- [ ] `AIProvider` (mock + OpenAI-compatible), structured outputs validated with Zod, evidence references
-- [ ] Insight workflow: draft → reviewed → published; never auto-published
-- [ ] Goals: entity with metric links, baseline, target direction, status flow, AI/human source, approval
-- [ ] Type check, lint, tests and production build green
+- [x] NGG portfolio dashboard and attention panel
+- [x] NGG client workspace: results, insights, goals
+- [x] Client executive dashboard: overview, adoption, management, organization, trends, goals, methodology
+- [x] `AIProvider` (mock + OpenAI-compatible), structured outputs validated with Zod, evidence references
+- [x] Insight workflow: draft → reviewed → published; never auto-published
+- [x] Goals: entity with metric links, baseline, target direction, status flow, AI/human source, approval
+- [x] Type check, lint, tests and production build green
 
 Items are ticked only once implemented and verified in this repository.

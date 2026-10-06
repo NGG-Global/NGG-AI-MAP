@@ -10,6 +10,10 @@ import { LinkButton } from "@/components/ui/Button";
 import type { ServiceContext } from "@/server/services/context";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/domain/shared/enums";
+import { insights } from "@/server/db/schema";
+import { desc } from "drizzle-orm";
+import { InsightBadge, InsightView } from "@/components/insights/InsightView";
+import Link from "next/link";
 
 /**
  * Core-metric preview for the project overview. Reads cached engine output only (metric_results),
@@ -30,9 +34,13 @@ export async function ProjectResultsPreview({ ctx, projectId, clientId, t, local
     : [];
   const currentById = new Map(rows.filter((r) => r.waveId === current?.id).map((r) => [r.metricId, r]));
   const baselineById = new Map(rows.filter((r) => r.waveId === baseline?.id).map((r) => [r.metricId, r]));
+  const [latestInsight] = current
+    ? await ctx.db.select().from(insights).where(and(eq(insights.projectId, projectId), eq(insights.type, "executive_summary"), eq(insights.waveId, current.id))).orderBy(desc(insights.createdAt)).limit(1)
+    : [];
 
   return (
-    <Tile className={className}>
+    <div className={`flex flex-col gap-4 ${className ?? ""}`}>
+    <Tile>
       <TileTitle trailing={current ? <span className="text-[12px] text-text-muted">{baseline ? `${current.code} ${locale === "he" ? "מול" : "vs"} ${baseline.code}` : current.code}</span> : undefined}>
         {t.projects.coreMetrics}
       </TileTitle>
@@ -60,5 +68,13 @@ export async function ProjectResultsPreview({ ctx, projectId, clientId, t, local
         </ul>
       )}
     </Tile>
+    {latestInsight ? (
+      <Tile>
+        <TileTitle trailing={<InsightBadge status={latestInsight.status} t={t} />}>{t.projects.keyInsights}</TileTitle>
+        <InsightView insight={latestInsight} metrics={defs.map((d) => d.config)} locale={locale} t={t} compact />
+        <Link href={`/ngg/clients/${clientId}/projects/${projectId}/insights/${latestInsight.id}`} className="mt-3 inline-block text-[13px] font-semibold">{t.insights.title} ←</Link>
+      </Tile>
+    ) : null}
+    </div>
   );
 }
