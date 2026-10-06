@@ -20,6 +20,12 @@
 | `SETUP_TOKEN` | long random string, used once on `/setup`, then removed |
 | `AI_PROVIDER` | `mock` until an AI key is configured |
 
+Supabase exposes the `public` schema through its Data API by default. Migration `0002` enables
+row-level security and revokes `anon`/`authenticated` access on every table, so the API returns
+nothing. Verify after deploy: Supabase → Advisors → Security Advisor should report no
+"RLS disabled in public" findings. Optionally also turn the Data API off entirely
+(Project Settings → Data API), since this platform never uses it.
+
 The detailed runbook below covers the same steps plus self-hosting and terminal alternatives.
 
 
