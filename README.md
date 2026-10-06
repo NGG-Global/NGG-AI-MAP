@@ -35,6 +35,8 @@ All demo organisations, people and numbers are fictional.
 | `npm run db:seed` | reset and seed demo data (local PGlite or `DATABASE_URL`) |
 | `npm run db:generate` | generate a migration after editing `src/server/db/schema.ts` |
 | `npm run db:reset` | delete the local PGlite data directory |
+| `npm run admin:create -- --email … --name … --password …` | create the first Super Admin in a production database (no demo data) |
+| `npm run library:load` | load or refresh the section, question and metric libraries |
 | `npm run typecheck` | `next typegen` + `tsc --noEmit` |
 | `npm run lint` | ESLint |
 | `npm test` | Vitest (domain + database integration tests on in-memory PGlite) |
@@ -60,6 +62,10 @@ aggregated payload. Set `AI_PROVIDER=openai_compatible` with `AI_BASE_URL`, `AI_
 to call any OpenAI-compatible chat-completions endpoint (Groq, Cloudflare Workers AI, gateways).
 All calls go through `src/server/ai`; outputs are validated against Zod schemas, unknown metric ids are
 rejected, causal language is flagged, and every insight starts as a draft for NGG review.
+
+## Deployment
+
+See `docs/DEPLOYMENT.md` for the step-by-step production runbook (database, secrets, hosting, first admin, libraries, AI provider, client onboarding).
 
 ## Database
 
