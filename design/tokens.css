@@ -1,0 +1,78 @@
+/*
+ * NGG AI Assessment Platform — design tokens (modular / bento direction)
+ * Light mode only. Hebrew RTL first. Font: Heebo (Google Fonts).
+ * The screens in /screens use these exact values inline; this file is the
+ * single source of truth to lift into the real codebase (CSS vars / Tailwind theme).
+ */
+:root {
+  /* Surfaces */
+  --color-bg-page: #EFEEF2;        /* cool grey page behind tiles */
+  --color-surface: #FFFFFF;        /* tiles, capsules, cards */
+  --color-surface-sunken: #F7F7F8; /* rows / inner tiles inside a white tile */
+  --color-surface-muted: #F4F4F6;  /* segmented-control track, secondary buttons */
+
+  /* Ink & text */
+  --color-ink: #15151F;            /* primary text, primary buttons, dark tiles */
+  --color-ink-2: #3A3A40;          /* secondary text, inactive nav */
+  --color-ink-3: #2A2A36;          /* chips on dark tiles */
+  --color-text-muted: #5A5A5C;     /* captions, meta (AA on white) */
+  --color-text-on-dark-muted: #C7C6C7;
+
+  /* Lines */
+  --color-border: #E5E4E7;
+  --color-border-strong: #DFDDDD;
+  --color-border-dashed: #C7C6C7;  /* placeholders, planned items, hidden segments */
+
+  /* NGG magenta accent */
+  --color-accent: #EC2A8C;         /* hero tile, CTA, T1 markers, current step */
+  --color-accent-strong: #D11E78;
+  --color-accent-text: #B01A65;    /* links / accent text on white */
+  --color-accent-deep: #8A1450;    /* text on accent-soft */
+  --color-accent-soft: #FDEEF6;    /* AI badges, highlighted rows */
+  --color-accent-tint: #F7B3D6;    /* T0→T1 connector, partial progress */
+  --color-accent-on-dark: #F284BD; /* accent text/icons on ink tiles */
+
+  /* Status (always paired with text/icon, never colour alone) */
+  --color-success: #167349;  --color-success-bg: #E9F6EF;  --color-success-on-dark: #34B87E;
+  --color-warning: #A66F08;  --color-warning-text: #6B4605; --color-warning-bg: #FBF2E0;
+  --color-danger:  #B0162F;
+  --color-info:    #1D4EA3;  --color-info-bg: #E8F0FB;
+
+  /* Neutral data marks */
+  --color-baseline-mark: #949494;  /* T0 hollow markers, NGG triangle outline */
+
+  /* Radii — hierarchy matters: bigger container = bigger radius */
+  --radius-tile-xl: 32px;   /* mobile hero tiles */
+  --radius-tile: 28px;      /* desktop tiles, floating sidebar */
+  --radius-inner: 20px;     /* tiles/rows inside a tile */
+  --radius-row: 16px;
+  --radius-pill: 999px;     /* buttons, capsules, chips, nav items */
+
+  /* Spacing */
+  --gap-tiles: 16px;        /* between tiles */
+  --gap-inner: 8px;         /* between rows inside a tile */
+  --pad-tile: 24px;         /* 26–30px for hero tiles */
+  --pad-page: 16px;
+
+  /* Type */
+  --font-sans: 'Heebo', 'Assistant', system-ui, sans-serif;
+  --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700; --fw-heavy: 800; --fw-black: 900;
+  --fs-display-num: 76px;   /* one hero number per screen (64–84) */
+  --fs-h1: 40px;            /* sentence headlines (36–44 desktop, 36–40 mobile) */
+  --fs-h2: 18px;            /* tile titles */
+  --fs-kpi: 34px;           /* KPI numbers */
+  --fs-body: 14px;          /* 15–16 for reading text */
+  --fs-caption: 12px;
+
+  /* Controls */
+  --control-h: 44px;        /* nav items, pills */
+  --control-h-lg: 52px;     /* top-bar capsules */
+  --control-h-cta: 58px;    /* mobile primary CTA */
+}
+
+body {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+  background: var(--color-bg-page);
+}
