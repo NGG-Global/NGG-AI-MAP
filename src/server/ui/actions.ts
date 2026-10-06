@@ -2,7 +2,10 @@ import "server-only";
 import { AppError } from "@/server/shared/errors";
 
 /** Uniform result for server actions driven by `useActionState`. */
-export type ActionState = { ok: true; message?: string; data?: Record<string, string> } | { ok: false; error: string; fields?: string[] } | null;
+export type ActionState =
+  | { ok: true; message?: string; data?: Record<string, string> }
+  | { ok: false; error: string; fields?: string[]; /** Non-secret values to re-populate a form after an error. */ keep?: Record<string, string> }
+  | null;
 
 /** Converts thrown service errors into an action state instead of crashing the page. */
 export async function runAction(fn: () => Promise<ActionState>): Promise<ActionState> {

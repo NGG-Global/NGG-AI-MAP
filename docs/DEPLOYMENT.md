@@ -1,5 +1,28 @@
 # Deployment runbook
 
+## Quick path (recommended): Vercel + Supabase, no terminal required
+
+1. **Supabase** — create a project, open *Connect*, copy the **Transaction pooler** connection string
+   (port 6543) and replace `[YOUR-PASSWORD]` with the database password you chose.
+2. **Vercel** — import the GitHub repository, add the environment variables below, deploy.
+3. **Setup page** — open `https://<your-site>/setup`, enter the `SETUP_TOKEN` value, your name,
+   email and a password. This creates the Super Admin and loads the libraries.
+4. **Remove `SETUP_TOKEN`** from Vercel and redeploy. The page is disabled once a user exists anyway.
+5. **AI (optional)** — set `AI_PROVIDER=openai_compatible`, `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`
+   and redeploy.
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | Supabase transaction-pooler string |
+| `DATABASE_SSL` | `encrypt` (default; set `verify` only if you install the provider CA) |
+| `SESSION_SECRET` | long random string (`openssl rand -hex 32` or any password generator, 48+ characters) |
+| `APP_URL` | the site's public URL, no trailing slash |
+| `SETUP_TOKEN` | long random string, used once on `/setup`, then removed |
+| `AI_PROVIDER` | `mock` until an AI key is configured |
+
+The detailed runbook below covers the same steps plus self-hosting and terminal alternatives.
+
+
 Manual steps to take the platform from this repository to a working production environment.
 Steps are ordered; each one states what it produces. Where a value must be confirmed against a
 provider's current documentation, the step says so.
@@ -87,7 +110,10 @@ Result: all tables and enums exist; the database is still empty.
 
 ## 6. Create the first NGG Super Admin
 
-Production has no users. Create the first one without seeding:
+Easiest: set `SETUP_TOKEN`, open `/setup` in the browser, fill the form (this also loads the
+libraries, so step 7 can be skipped), then remove `SETUP_TOKEN`.
+
+Terminal alternative, without seeding:
 
 ```bash
 DATABASE_URL="postgresql://…" npm run admin:create -- --email you@nggconsult.com --name "Your Name" --password "a-long-unique-password"

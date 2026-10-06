@@ -28,7 +28,7 @@ export function resolveTarget(explicit?: string): string {
 export async function createDb(options: CreateDbOptions = {}): Promise<Db> {
   const target = resolveTarget(options.target);
   if (target.startsWith("postgres://") || target.startsWith("postgresql://")) {
-    const pool = new Pool({ connectionString: target });
+    const pool = new Pool({ connectionString: target, ssl: sslOptions(target) });
     const database = drizzlePg(pool, { schema });
     if (options.runMigrations) await migratePg(database, { migrationsFolder: MIGRATIONS_FOLDER });
     return database;
@@ -39,6 +39,26 @@ export async function createDb(options: CreateDbOptions = {}): Promise<Db> {
   const database = drizzlePglite(client, { schema });
   if (options.runMigrations) await migratePglite(database, { migrationsFolder: MIGRATIONS_FOLDER });
   return database;
+}
+
+/**
+ * Remote managed databases (Supabase, Neon, …) require TLS. By default the connection is encrypted
+ * without certificate verification so it works without installing provider CA certificates;
+ * set DATABASE_SSL=verify for full verification, or DATABASE_SSL=off for a local plain connection.
+ */
+function sslOptions(url: string): false | { rejectUnauthorized: boolean } | undefined {
+  const mode = process.env.DATABASE_SSL?.trim().toLowerCase();
+  if (mode === "off") return false;
+  if (mode === "verify") return { rejectUnauthorized: true };
+  const host = (() => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return "";
+    }
+  })();
+  if (host === "localhost" || host === "127.0.0.1") return undefined;
+  return { rejectUnauthorized: false };
 }
 
 export async function closeDb(database: Db): Promise<void> {

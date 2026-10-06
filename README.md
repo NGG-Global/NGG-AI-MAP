@@ -65,7 +65,7 @@ rejected, causal language is flagged, and every insight starts as a draft for NG
 
 ## Deployment
 
-See `docs/DEPLOYMENT.md` for the step-by-step production runbook (database, secrets, hosting, first admin, libraries, AI provider, client onboarding).
+Quickest path: Vercel + Supabase, then open `/setup` once with `SETUP_TOKEN` set to create the first admin and load the libraries. See `docs/DEPLOYMENT.md` for the step-by-step production runbook (database, secrets, hosting, first admin, libraries, AI provider, client onboarding).
 
 ## Database
 
