@@ -4,7 +4,7 @@ import { drizzle as drizzlePglite, type PgliteDatabase } from "drizzle-orm/pglit
 import { drizzle as drizzlePg, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { migrate as migratePglite } from "drizzle-orm/pglite/migrator";
 import { migrate as migratePg } from "drizzle-orm/node-postgres/migrator";
-import { PGlite } from "@electric-sql/pglite";
+import type { PGlite } from "@electric-sql/pglite";
 import { Pool } from "pg";
 import * as schema from "./schema";
 
@@ -33,6 +33,9 @@ export async function createDb(options: CreateDbOptions = {}): Promise<Db> {
     if (options.runMigrations) await migratePg(database, { migrationsFolder: MIGRATIONS_FOLDER });
     return database;
   }
+  // PGlite (embedded Postgres) is only used for local development and tests; load it on demand so
+  // production functions never initialise the WASM engine.
+  const { PGlite } = await import("@electric-sql/pglite");
   if (target !== "memory") fs.mkdirSync(target, { recursive: true });
   const client = target === "memory" ? new PGlite() : new PGlite(target);
   await client.waitReady;
@@ -63,8 +66,8 @@ function sslOptions(url: string): false | { rejectUnauthorized: boolean } | unde
 
 export async function closeDb(database: Db): Promise<void> {
   const client = (database as { $client?: unknown }).$client;
-  if (client instanceof PGlite) await client.close();
-  else if (client instanceof Pool) await client.end();
+  if (client instanceof Pool) await client.end();
+  else if (client && typeof (client as PGlite).close === "function") await (client as PGlite).close();
 }
 
 export { schema };

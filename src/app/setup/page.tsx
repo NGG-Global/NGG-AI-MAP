@@ -8,6 +8,13 @@ import { SetupForm } from "./SetupForm";
 
 export const dynamic = "force-dynamic";
 
+/** Error text safe to show: driver messages never include credentials, but strip anything URL-like. */
+function describeDbError(error: unknown): string {
+  const raw = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  const cause = error instanceof Error && error.cause instanceof Error ? ` (${error.cause.message})` : "";
+  return `${raw}${cause}`.replace(/postgres(ql)?:\/\/\S+/g, "postgresql://…").slice(0, 400);
+}
+
 /**
  * One-time installation page. Works only while the database has no users AND SETUP_TOKEN is set.
  * It creates the first Super Admin and loads the libraries, so no terminal is needed to go live.
@@ -16,8 +23,14 @@ export default async function SetupPage({ searchParams }: PageProps<"/setup">) {
   const sp = await searchParams;
   const locale = sp.lang === "en" ? "en" : "he";
   const he = locale === "he";
-  const fresh = await isFreshInstall(await db());
   const tokenConfigured = Boolean(process.env.SETUP_TOKEN?.trim());
+  let fresh = false;
+  let dbError: string | null = null;
+  try {
+    fresh = await isFreshInstall(await db());
+  } catch (error) {
+    dbError = describeDbError(error);
+  }
   return (
     <main dir={he ? "rtl" : "ltr"} lang={locale} className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -29,7 +42,13 @@ export default async function SetupPage({ searchParams }: PageProps<"/setup">) {
               {he ? "יצירת מנהל/ת המערכת הראשון/ה וטעינת ספריות השאלונים והמדדים. הדף פעיל פעם אחת בלבד." : "Creates the first Super Admin and loads the questionnaire and metric libraries. This page works only once."}
             </p>
           </div>
-          {!fresh ? (
+          {dbError ? (
+            <Notice tone="danger" role="alert">
+              <p className="font-semibold">{he ? "לא ניתן להתחבר למסד הנתונים." : "The database could not be reached."}</p>
+              <p className="mt-1 font-mono text-[12px]" dir="ltr">{dbError}</p>
+              <p className="mt-2">{he ? "בדקו את DATABASE_URL בהגדרות הסביבה (סיסמה, מארח, פורט) ופרסו מחדש." : "Check DATABASE_URL in the environment settings (password, host, port) and redeploy."}</p>
+            </Notice>
+          ) : !fresh ? (
             <Notice tone="success">
               {he ? "ההקמה כבר בוצעה." : "Setup is already complete."} <Link href="/login" className="font-semibold">{he ? "לדף הכניסה ←" : "Go to login ←"}</Link>
             </Notice>
