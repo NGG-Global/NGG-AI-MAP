@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/*
+ * NGG design tokens (design/tokens.css) exposed to Tailwind v4 as theme values.
+ * Light mode only by design. Hebrew RTL is the primary direction; all layout uses logical properties.
+ */
+@theme {
+  --color-page: #efeef2;
+  --color-surface: #ffffff;
+  --color-sunken: #f7f7f8;
+  --color-muted: #f4f4f6;
+
+  --color-ink: #15151f;
+  --color-ink-2: #3a3a40;
+  --color-ink-3: #2a2a36;
+  --color-text-muted: #5a5a5c;
+  --color-on-dark-muted: #c7c6c7;
+
+  --color-line: #e5e4e7;
+  --color-line-strong: #dfdddd;
+  --color-line-dashed: #c7c6c7;
+
+  --color-accent: #ec2a8c;
+  --color-accent-strong: #d11e78;
+  --color-accent-text: #b01a65;
+  --color-accent-deep: #8a1450;
+  --color-accent-soft: #fdeef6;
+  --color-accent-tint: #f7b3d6;
+  --color-accent-on-dark: #f284bd;
+
+  --color-success: #167349;
+  --color-success-bg: #e9f6ef;
+  --color-success-on-dark: #34b87e;
+  --color-warning: #a66f08;
+  --color-warning-text: #6b4605;
+  --color-warning-bg: #fbf2e0;
+  --color-danger: #b0162f;
+  --color-danger-bg: #fbe9ec;
+  --color-info: #1d4ea3;
+  --color-info-bg: #e8f0fb;
+  --color-baseline-mark: #949494;
+
+  --radius-tile-xl: 32px;
+  --radius-tile: 28px;
+  --radius-inner: 20px;
+  --radius-row: 16px;
+  --radius-pill: 999px;
+
+  --font-sans: "Heebo", "Assistant", system-ui, sans-serif;
+}
+
+html {
+  background: var(--color-page);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+  background: var(--color-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+a {
+  color: var(--color-accent-text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Numbers and mixed-direction fragments inside RTL text. */
+bdi {
+  unicode-bidi: isolate;
+}
+
+/* Reduced motion: no decorative animation anywhere. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

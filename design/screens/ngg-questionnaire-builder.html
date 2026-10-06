@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>בונה השאלון</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#EFEEF2}
+*{box-sizing:border-box}
+button,input,select{font-family:inherit}
+a{color:#B01A65;text-decoration:none}a:hover{color:#8A1450}
+:focus-visible{outline:2px solid #EC2A8C;outline-offset:2px}
+</style>
+</head>
+<body>
+<div dir="rtl" style="min-height: 100vh; display: flex; flex-direction: column; gap: 16px; padding: 16px; background: #EFEEF2; font-family: 'Heebo', sans-serif; color: #15151F; font-variant-numeric: tabular-nums">
+
+<!-- Top capsules -->
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+  <a href="ngg-client-workspace.html" aria-label="חזרה לסביבת הלקוח" style="width: 52px; height: 52px; border-radius: 50%; background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; color: #15151F"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></a>
+  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 52px; padding: 6px 20px; border-radius: 26px; background: #FFFFFF">
+    <div style="display: flex; flex-direction: column; line-height: 1.2"><span style="font-size: 12px; color: #5A5A5C">לקוח ג׳ · AI Adoption 2026</span><h1 style="margin: 0; font-size: 17px; font-weight: 900">שאלון T1 — מעקב</h1></div>
+    <span style="height: 28px; padding: 0 12px; border-radius: 14px; background: #F4F4F6; font-size: 12px; font-weight: 800; color: #3A3A40; display: inline-flex; align-items: center">גרסה 1.1 · טיוטה</span>
+  </div>
+  <div style="margin-inline-start: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+    <span style="display: inline-flex; align-items: center; gap: 8px; height: 52px; padding: 0 18px; border-radius: 26px; background: #E9F6EF; color: #125C3A; font-size: 13px; font-weight: 800"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"></path><path d="m9 12 2 2 4-4"></path></svg>מצב מחקרי מוגן</span>
+    <label style="display: inline-flex; align-items: center; gap: 6px; height: 52px; padding: 0 18px; border-radius: 26px; background: #FFFFFF; font-size: 13px; color: #5A5A5C">תצוגה מקדימה<select aria-label="פרסונה לתצוגה מקדימה" style="border: 0; background: transparent; font-size: 14px; font-weight: 800; color: #15151F"><option>מנהל/ת</option><option>עובד/ת</option><option>לא משתמש/ת ב-AI</option></select></label>
+    <button type="button" style="height: 52px; padding: 0 20px; border-radius: 26px; border: 0; background: #FFFFFF; font-size: 14px; font-weight: 700; cursor: pointer">קישור לבדיקת לקוח</button>
+    <button type="button" style="height: 52px; padding: 0 24px; border-radius: 26px; border: 0; background: #15151F; color: #FFFFFF; font-size: 14px; font-weight: 800; cursor: pointer">שמירת גרסה</button>
+  </div>
+</header>
+
+<!-- Summary tiles -->
+<section aria-label="סיכום השאלון" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px">
+  <div style="padding: 16px 20px; border-radius: 22px; background: #FFFFFF; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 700; color: #5A5A5C">זמן מילוי משוער</span><span style="font-size: 30px; font-weight: 900; line-height: 1">11<span style="font-size: 15px; font-weight: 700"> דק׳</span></span></div>
+  <div style="padding: 16px 20px; border-radius: 22px; background: #FFFFFF; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 700; color: #5A5A5C">שאלות</span><span style="font-size: 30px; font-weight: 900; line-height: 1">58</span><span style="font-size: 12px; color: #5A5A5C">44 לעובדים · 58 למנהלים</span></div>
+  <div style="padding: 16px 20px; border-radius: 22px; background: #FFFFFF; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 700; color: #5A5A5C">פריטים מתוקפים</span><span style="font-size: 30px; font-weight: 900; line-height: 1">22</span></div>
+  <div style="padding: 16px 20px; border-radius: 22px; background: #FFFFFF; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 700; color: #5A5A5C">מותאמים ללקוח</span><span style="font-size: 30px; font-weight: 900; line-height: 1">3</span></div>
+  <div style="grid-column: span 2; padding: 16px 20px; border-radius: 22px; background: #15151F; color: #FFFFFF; display: flex; flex-direction: column; justify-content: space-between; gap: 10px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 12px; font-weight: 700; color: #DFDDDD">יכולת השוואה ל-T0</span><span style="font-size: 30px; font-weight: 900; line-height: 1">94%</span></div>
+    <span style="height: 8px; border-radius: 4px; background: #3A3A40; overflow: hidden; display: block"><span style="display: block; width: 94%; height: 100%; background: #34B87E"></span></span>
+  </div>
+</section>
+
+<div style="flex: 1; display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch">
+
+  <!-- Library -->
+  <aside aria-labelledby="lib" style="flex: 1 1 280px; border-radius: 28px; background: #FFFFFF; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; align-items: center; justify-content: space-between"><h2 id="lib" style="margin: 0; font-size: 16px; font-weight: 900">ספריית מודולים</h2><span style="font-size: 12px; color: #5A5A5C">24</span></div>
+    <label style="display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border-radius: 22px; background: #F4F4F6; color: #5A5A5C"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="חיפוש מודול" aria-label="חיפוש מודול" style="flex: 1; min-width: 0; border: 0; background: transparent; font-size: 13px; outline: none"></label>
+    <div role="group" aria-label="סינון מודולים" style="display: flex; flex-wrap: wrap; gap: 6px">
+      <button type="button" aria-pressed="true" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 0; background: #15151F; color: #FFFFFF; font-size: 12px; font-weight: 700; cursor: pointer">הכל</button>
+      <button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 0; background: #F4F4F6; font-size: 12px; font-weight: 600; cursor: pointer">מתוקפים</button>
+      <button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 0; background: #F4F4F6; font-size: 12px; font-weight: 600; cursor: pointer">NGG</button>
+      <button type="button" aria-pressed="false" style="height: 32px; padding: 0 12px; border-radius: 16px; border: 0; background: #F4F4F6; font-size: 12px; font-weight: 600; cursor: pointer">איכותני</button>
+    </div>
+    <div style="padding: 14px; border-radius: 20px; background: #FBF2E0; display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 14px; font-weight: 800">אמון ב-AI</span><button type="button" aria-label="הוספת אמון ב-AI לשאלון" style="width: 34px; height: 34px; border-radius: 50%; border: 0; background: #15151F; color: #FFFFFF; cursor: pointer; font-size: 18px; line-height: 1">+</button></div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; font-size: 11px; font-weight: 800"><span style="padding: 3px 9px; border-radius: 10px; background: #15151F; color: #FFFFFF">מתוקף</span><span style="padding: 3px 9px; border-radius: 10px; background: #FFFFFF; color: #6B4605">היה ב-T0</span><span style="padding: 3px 9px; border-radius: 10px; background: #FFFFFF; color: #3A3A40">6 שאלות</span></div>
+    </div>
+    <div style="padding: 14px; border-radius: 20px; background: #F7F7F8; display: flex; align-items: center; justify-content: space-between; gap: 8px"><div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 800">מפת האצלה אדם–AI</span><span style="font-size: 11px; font-weight: 700; color: #5A5A5C">מדד NGG · למנהלים · 10 שאלות</span></div><button type="button" aria-label="הוספת מפת האצלה לשאלון" style="width: 34px; height: 34px; border-radius: 50%; border: 0; background: #FFFFFF; cursor: pointer; font-size: 18px; line-height: 1">+</button></div>
+    <div style="padding: 14px; border-radius: 20px; background: #F7F7F8; display: flex; align-items: center; justify-content: space-between; gap: 8px"><div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 800">אפשור ארגוני ל-AI</span><span style="font-size: 11px; font-weight: 700; color: #5A5A5C">ליבה מומלצת · 15 שאלות</span></div><button type="button" aria-label="הוספת אפשור ארגוני לשאלון" style="width: 34px; height: 34px; border-radius: 50%; border: 0; background: #FFFFFF; cursor: pointer; font-size: 18px; line-height: 1">+</button></div>
+    <div style="padding: 14px; border-radius: 20px; background: #F7F7F8; display: flex; align-items: center; justify-content: space-between; gap: 8px"><div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 800">חסמים</span><span style="font-size: 11px; font-weight: 700; color: #5A5A5C">תוצאות · 7 שאלות</span></div><button type="button" aria-label="הוספת חסמים לשאלון" style="width: 34px; height: 34px; border-radius: 50%; border: 0; background: #FFFFFF; cursor: pointer; font-size: 18px; line-height: 1">+</button></div>
+    <div style="padding: 14px; border-radius: 20px; background: #F7F7F8; display: flex; align-items: center; justify-content: space-between; gap: 8px"><div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 800">שאלות פתוחות</span><span style="font-size: 11px; font-weight: 700; color: #5A5A5C">איכותני · 3 שאלות</span></div><button type="button" aria-label="הוספת שאלות פתוחות לשאלון" style="width: 34px; height: 34px; border-radius: 50%; border: 0; background: #FFFFFF; cursor: pointer; font-size: 18px; line-height: 1">+</button></div>
+    <span style="font-size: 12px; color: #5A5A5C; padding: 0 4px">4 מודולים נוספים כבר בשאלון</span>
+  </aside>
+
+  <!-- Canvas -->
+  <section aria-labelledby="cv" style="flex: 999 1 460px; min-width: 0; border-radius: 28px; background: #FFFFFF; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px"><h2 id="cv" style="margin: 0; font-size: 16px; font-weight: 900">מבנה השאלון</h2><button type="button" style="height: 40px; padding: 0 16px; border-radius: 20px; border: 0; background: #F4F4F6; font-size: 13px; font-weight: 800; cursor: pointer">+ שאלה מותאמת ללקוח</button></div>
+
+    <div role="alert" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 18px; border-radius: 20px; background: #FBF2E0">
+      <span style="width: 36px; height: 36px; border-radius: 50%; background: #FFFFFF; display: inline-flex; align-items: center; justify-content: center; flex: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A5A06" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"></path></svg></span>
+      <div style="flex: 1 1 240px; display: flex; flex-direction: column; gap: 2px"><strong style="font-size: 14px; color: #3A2604">"אמון ב-AI" הוסר מאז T0</strong><span style="font-size: 13px; color: #6B4605">2 מדדי אורך לא יהיו ברי השוואה מלאה.</span></div>
+      <button type="button" style="height: 40px; padding: 0 16px; border-radius: 20px; border: 0; background: #15151F; color: #FFFFFF; font-size: 13px; font-weight: 800; cursor: pointer">החזרת המודול</button>
+    </div>
+
+    <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+      <li style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 20px; background: #F7F7F8">
+        <span aria-hidden="true" style="color: #B5B3B4; letter-spacing: -2px">⋮⋮</span><span style="width: 32px; height: 32px; border-radius: 50%; background: #FFFFFF; font-size: 13px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center">1</span>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 800">הקשר ארגוני ותפקיד</span><span style="font-size: 12px; color: #5A5A5C">6 שאלות · כל המשיבים</span></div>
+        <span style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; background: #FFFFFF; color: #3A3A40">ליבה</span>
+      </li>
+      <li style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 20px; background: #F7F7F8">
+        <span aria-hidden="true" style="color: #B5B3B4; letter-spacing: -2px">⋮⋮</span><span style="width: 32px; height: 32px; border-radius: 50%; background: #FFFFFF; font-size: 13px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center">2</span>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 800">שימוש ב-AI ורוחב שימושים</span><span style="font-size: 12px; color: #5A5A5C">8 שאלות · כל המשיבים</span></div>
+        <span style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; background: #FFFFFF; color: #3A3A40">ליבה מומלצת</span>
+      </li>
+      <li style="display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; border-radius: 20px; background: #F7F7F8">
+        <div style="display: flex; align-items: center; gap: 14px">
+          <span aria-hidden="true" style="color: #B5B3B4; letter-spacing: -2px">⋮⋮</span><span style="width: 32px; height: 32px; border-radius: 50%; background: #FFFFFF; font-size: 13px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center">3</span>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 800">אוריינות AI גנרטיבית</span><span style="font-size: 12px; color: #5A5A5C">12 שאלות · ליקרט 1–5 · ניסוח, סקאלה וחישוב נעולים</span></div>
+          <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; background: #15151F; color: #FFFFFF"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>מתוקף</span>
+        </div>
+        <div style="margin-inline-start: 74px; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: #FFFFFF; font-size: 13px; color: #3A3A40"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5A5A5C" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><span style="flex: 1">[נוסח פריט מהסולם המתוקף]</span><span style="font-size: 11px; color: #5A5A5C">פריט 3</span></div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: #FFFFFF; font-size: 13px; color: #3A3A40"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5A5A5C" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><span style="flex: 1">[נוסח פריט מהסולם המתוקף]</span><span style="font-size: 11px; color: #5A5A5C">פריט 7</span></div>
+          <a href="#" style="font-size: 12px; font-weight: 800">+ 10 פריטים נוספים · יצירת עותק מותאם</a>
+        </div>
+      </li>
+      <li style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 20px; background: #F7F7F8">
+        <span aria-hidden="true" style="color: #B5B3B4; letter-spacing: -2px">⋮⋮</span><span style="width: 32px; height: 32px; border-radius: 50%; background: #FFFFFF; font-size: 13px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center">4</span>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 800">עבודה אג׳נטית</span><span style="font-size: 12px; color: #5A5A5C">9 שאלות · מדלג למי שלא השתמש ב-AI בחודש האחרון</span></div>
+        <span style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; background: #FDEEF6; color: #8A1450">מדד NGG</span>
+      </li>
+      <li aria-current="true" style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 20px; background: #EC2A8C; color: #FFFFFF">
+        <span aria-hidden="true" style="color: #F7B3D6; letter-spacing: -2px">⋮⋮</span><span style="width: 32px; height: 32px; border-radius: 50%; background: #FFFFFF; color: #EC2A8C; font-size: 13px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center">5</span>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 800">ניהול אג׳נטי</span><span style="font-size: 12px; color: #FDEEF6">14 שאלות · מוצג רק למנהלים</span></div>
+        <span style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; background: rgba(255,255,255,0.22)">ניתוב</span><span style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; background: #FFFFFF; color: #8A1450">מדד NGG</span>
+      </li>
+      <li style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 20px; border: 1.5px dashed #DFDDDD">
+        <span aria-hidden="true" style="color: #B5B3B4; letter-spacing: -2px">⋮⋮</span><span style="width: 32px; height: 32px; border-radius: 50%; background: #F4F4F6; font-size: 13px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center">6</span>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 800">שאלות לקוח — מערך הייצור</span><span style="font-size: 12px; color: #5A5A5C">3 שאלות · לא נכלל במדדי הליבה</span></div>
+        <span style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px; background: #F4F4F6; color: #3A3A40">מותאם ללקוח</span>
+      </li>
+    </ol>
+  </section>
+
+  <!-- Config -->
+  <aside aria-labelledby="cfg" style="flex: 1 1 300px; border-radius: 28px; background: #FFFFFF; padding: 22px; display: flex; flex-direction: column; gap: 18px">
+    <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 700; color: #5A5A5C">הגדרות מקטע 5</span><h2 id="cfg" style="margin: 0; font-size: 22px; font-weight: 900">ניהול אג׳נטי</h2></div>
+    <div style="display: flex; flex-direction: column; gap: 6px"><label for="lbl" style="font-size: 13px; font-weight: 800">כותרת למשיבים</label><input id="lbl" type="text" value="איך את/ה מנהל/ת עבודה עם AI" style="height: 46px; padding: 0 16px; border-radius: 23px; border: 0; background: #F4F4F6; font-size: 14px; color: #15151F"></div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span id="aud" style="font-size: 13px; font-weight: 800">קהל יעד</span>
+      <div role="group" aria-labelledby="aud" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 4px; border-radius: 24px; background: #F4F4F6; gap: 2px">
+        <button type="button" aria-pressed="false" style="height: 38px; border-radius: 19px; border: 0; background: transparent; font-size: 13px; font-weight: 600; color: #3A3A40; cursor: pointer">כולם</button>
+        <button type="button" aria-pressed="true" style="height: 38px; border-radius: 19px; border: 0; background: #15151F; color: #FFFFFF; font-size: 13px; font-weight: 800; cursor: pointer">מנהלים</button>
+        <button type="button" aria-pressed="false" style="height: 38px; border-radius: 19px; border: 0; background: transparent; font-size: 13px; font-weight: 600; color: #3A3A40; cursor: pointer">עובדים</button>
+      </div>
+    </div>
+    <div style="padding: 16px; border-radius: 20px; background: #E8F0FB; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 13px; font-weight: 800; color: #143A7A">הצגת המקטע כאשר…</span>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; font-weight: 700">
+        <label style="display: contents"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">שדה</span><select style="height: 38px; padding: 0 12px; border-radius: 19px; border: 0; background: #FFFFFF; font-size: 13px; font-weight: 800; color: #15151F"><option>אחריות ניהולית</option></select></label>
+        <label style="display: contents"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">תנאי</span><select style="height: 38px; padding: 0 12px; border-radius: 19px; border: 0; background: #FFFFFF; font-size: 13px; font-weight: 600; color: #15151F"><option>שווה ל</option></select></label>
+        <label style="display: contents"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">ערך</span><select style="height: 38px; padding: 0 12px; border-radius: 19px; border: 0; background: #FFFFFF; font-size: 13px; font-weight: 800; color: #15151F"><option>כן</option></select></label>
+      </div>
+      <button type="button" style="align-self: flex-start; height: 32px; padding: 0 12px; border-radius: 16px; border: 1.5px dashed #5B9BF0; background: transparent; font-size: 12px; font-weight: 800; color: #143A7A; cursor: pointer">+ תנאי נוסף</button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 20px; background: #F7F7F8">
+      <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; font-weight: 800">חובה למילוי</span><span style="font-size: 12px; color: #5A5A5C">כולל "מעדיף/ה לא לענות"</span></div>
+      <button type="button" role="switch" aria-checked="true" aria-label="חובה למילוי" style="width: 48px; height: 28px; border-radius: 14px; border: 0; background: #EC2A8C; position: relative; cursor: pointer; flex: none"><span style="position: absolute; top: 3px; inset-inline-end: 3px; width: 22px; height: 22px; border-radius: 50%; background: #FFFFFF"></span></button>
+    </div>
+    <div style="padding: 16px; border-radius: 20px; background: #F7F7F8; display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 13px; font-weight: 800">מעמד מחקרי</span>
+      <dl style="margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 14px; font-size: 13px">
+        <dt style="color: #5A5A5C">סוג</dt><dd style="margin: 0; font-weight: 700">מדד NGG מבוסס מחקר</dd>
+        <dt style="color: #5A5A5C">גרסה</dt><dd style="margin: 0; font-weight: 700">2.1 · זהה ל-T0</dd>
+        <dt style="color: #5A5A5C">השוואה</dt><dd style="margin: 0; font-weight: 800; color: #167349">ברת השוואה מלאה</dd>
+      </dl>
+      <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #5A5A5C">שינוי ניסוח יוצר גרסה חדשה ומסמן את הפריט כמותאם.</p>
+    </div>
+  </aside>
+</div>
+</div>
+</body>
+</html>
