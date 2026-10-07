@@ -17,7 +17,7 @@ export function SettingsForm({ t, locale, client, canEditPrivacy }: { t: Diction
       <section className="grid gap-4 md:grid-cols-2">
         <h3 className="text-[15px] font-bold md:col-span-2">{t.settings.general}</h3>
         <Field label={t.clients.name} htmlFor="name"><Input id="name" name="name" required defaultValue={client.name} /></Field>
-        <Field label={t.clients.slug} htmlFor="slug"><Input id="slug" name="slug" required pattern="[a-z0-9-]+" dir="ltr" defaultValue={client.slug} /></Field>
+        <Field label={t.clients.slug} htmlFor="slug"><Input id="slug" name="slug" required maxLength={60} dir="ltr" defaultValue={client.slug} /></Field>
         <Field label={t.clients.industry} htmlFor="industry"><Input id="industry" name="industry" defaultValue={client.industry ?? ""} /></Field>
         <Field label={t.clients.organizationSize} htmlFor="organizationSize"><Input id="organizationSize" name="organizationSize" type="number" min={1} defaultValue={client.organizationSize ?? ""} /></Field>
         <Field label={t.clients.locale} htmlFor="locale">
@@ -52,7 +52,7 @@ export function SettingsForm({ t, locale, client, canEditPrivacy }: { t: Diction
           <Checkbox name="allowClientInvites" label={t.access.allowClientInvites} defaultChecked={client.allowClientInvites} />
         </div>
       </section>
-      <ActionNotice state={state} locale={locale} />
+      <ActionNotice state={state} locale={locale} messages={{ slug: t.clients.slugTaken }} fieldLabels={{ name: t.clients.name, slug: t.clients.slug }} />
       <div>
         <SubmitButton>{t.common.save}</SubmitButton>
       </div>

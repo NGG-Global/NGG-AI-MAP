@@ -46,11 +46,20 @@ export function toDateInputValue(value: Date | null | undefined): string {
   return value.toISOString().slice(0, 10);
 }
 
+/** Consonant transliteration so Hebrew client names still produce a readable Latin identifier. */
+const HEBREW_TO_LATIN: Record<string, string> = {
+  א: "a", ב: "b", ג: "g", ד: "d", ה: "h", ו: "v", ז: "z", ח: "ch", ט: "t", י: "y", כ: "k", ך: "k", ל: "l", מ: "m", ם: "m",
+  נ: "n", ן: "n", ס: "s", ע: "a", פ: "p", ף: "f", צ: "tz", ץ: "tz", ק: "k", ר: "r", ש: "sh", ת: "t",
+};
+
+/** Lowercase Latin letters, digits and single hyphens; at most 60 characters. Never throws. */
 export function slugify(input: string): string {
   return input
+    .replace(/[\u0590-\u05FF]/g, (ch) => HEBREW_TO_LATIN[ch] ?? "")
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
+    .slice(0, 60)
+    .replace(/-+$/g, "");
 }

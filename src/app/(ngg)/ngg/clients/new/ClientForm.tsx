@@ -8,17 +8,34 @@ import { ActionNotice } from "@/components/forms/ActionNotice";
 import { slugify } from "@/lib/format";
 import type { Dictionary } from "@/lib/i18n";
 
+function fieldLabels(t: Dictionary): Record<string, string> {
+  return { name: t.clients.name, slug: t.clients.slug, industry: t.clients.industry, organizationSize: t.clients.organizationSize, surveyContact: t.clients.surveyContact, primaryColor: t.clients.primaryColor, logoText: t.clients.logoText };
+}
+
 export function ClientForm({ t, locale }: { t: Dictionary; locale: "he" | "en" }) {
   const [state, action] = useActionState(createClientAction, null);
+  // Until the user types an identifier, the field stays empty and shows the derived one as a hint;
+  // the server derives it from the name and adds a suffix if it is already taken.
   const [slug, setSlug] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
+  const [derived, setDerived] = useState("");
   return (
     <form action={action} className="grid gap-4 md:grid-cols-2">
       <Field label={t.clients.name} htmlFor="name" className="md:col-span-2">
-        <Input id="name" name="name" required minLength={2} onChange={(e) => !slugTouched && setSlug(slugify(e.target.value))} />
+        <Input id="name" name="name" required minLength={2} onChange={(e) => setDerived(slugify(e.target.value))} />
       </Field>
       <Field label={t.clients.slug} htmlFor="slug" help={t.clients.slugHelp}>
-        <Input id="slug" name="slug" required pattern="[a-z0-9-]+" dir="ltr" value={slug} onChange={(e) => { setSlugTouched(true); setSlug(e.target.value); }} />
+        {/* Normalised as typed; the server normalises again and derives one from the name when empty. */}
+        <Input
+          id="slug"
+          name="slug"
+          dir="ltr"
+          maxLength={60}
+          autoComplete="off"
+          value={slug}
+          placeholder={derived}
+          onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[\s_]+/g, "-"))}
+          onBlur={() => setSlug(slugify(slug))}
+        />
       </Field>
       <Field label={t.clients.industry} htmlFor="industry">
         <Input id="industry" name="industry" />
@@ -42,7 +59,7 @@ export function ClientForm({ t, locale }: { t: Dictionary; locale: "he" | "en" }
         <Input id="logoText" name="logoText" maxLength={4} />
       </Field>
       <div className="md:col-span-2">
-        <ActionNotice state={state} locale={locale} messages={{ slug: locale === "he" ? "המזהה הקצר כבר קיים." : "This identifier already exists." }} />
+        <ActionNotice state={state} locale={locale} messages={{ slug: t.clients.slugTaken }} fieldLabels={fieldLabels(t)} />
       </div>
       <div className="md:col-span-2">
         <SubmitButton variant="cta" size="lg">

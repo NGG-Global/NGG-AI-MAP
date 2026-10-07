@@ -2,6 +2,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { clients, type Client, type SegmentTaxonomy } from "@/server/db/schema";
 import { newId } from "@/lib/ids";
+import { slugify } from "@/lib/format";
 import { ConflictError, ValidationError } from "@/server/shared/errors";
 import { LOCALES, MIN_PRIVACY_THRESHOLD } from "@/domain/shared/enums";
 import { canClient } from "@/domain/authz/policy";
@@ -56,16 +57,42 @@ export async function getClient(ctx: ServiceContext, clientId: string): Promise<
   return requireClient(ctx, clientId, "client.view");
 }
 
-export async function createClient(ctx: ServiceContext, input: ClientInput): Promise<Client> {
-  assertWorkspace(ctx, "client.create");
-  const parsed = clientInputSchema.safeParse(input);
-  if (!parsed.success) throw new ValidationError("client", parsed.error.issues.map((i) => i.path.join(".")));
-  const existing = await ctx.db
+async function slugTaken(ctx: ServiceContext, slug: string, exceptClientId?: string): Promise<boolean> {
+  const rows = await ctx.db
     .select({ id: clients.id })
     .from(clients)
-    .where(and(eq(clients.workspaceId, ctx.actor.workspaceId), eq(clients.slug, parsed.data.slug)))
+    .where(and(eq(clients.workspaceId, ctx.actor.workspaceId), eq(clients.slug, slug)))
     .limit(1);
-  if (existing.length) throw new ConflictError("slug");
+  return rows.some((r) => r.id !== exceptClientId);
+}
+
+/**
+ * Resolves the short identifier. A typed value is normalised (case, spaces, Hebrew letters) rather
+ * than rejected; an empty value is derived from the client name. A typed identifier that is already
+ * used is reported, while a derived one receives a numeric suffix.
+ */
+async function resolveSlug(ctx: ServiceContext, typed: string, name: string, exceptClientId?: string): Promise<string> {
+  const explicit = slugify(typed);
+  if (explicit.length >= 2) {
+    if (await slugTaken(ctx, explicit, exceptClientId)) throw new ConflictError("slug");
+    return explicit;
+  }
+  if (typed.trim() && exceptClientId) throw new ValidationError("client", ["slug"]);
+  const base = slugify(name).slice(0, 50);
+  const stem = base.length >= 2 ? base : "client";
+  for (let i = 1; i < 100; i += 1) {
+    const candidate = i === 1 && base.length >= 2 ? stem : `${stem}-${i}`;
+    if (!(await slugTaken(ctx, candidate, exceptClientId))) return candidate;
+  }
+  return `${stem}-${newId().slice(0, 8)}`;
+}
+
+export async function createClient(ctx: ServiceContext, input: ClientInput): Promise<Client> {
+  assertWorkspace(ctx, "client.create");
+  const name = (input.name ?? "").trim();
+  const slug = await resolveSlug(ctx, input.slug ?? "", name);
+  const parsed = clientInputSchema.safeParse({ ...input, slug });
+  if (!parsed.success) throw new ValidationError("client", parsed.error.issues.map((i) => i.path.join(".")));
   const id = newId();
   const [created] = await ctx.db
     .insert(clients)
@@ -90,7 +117,8 @@ export async function createClient(ctx: ServiceContext, input: ClientInput): Pro
 
 export async function updateClientSettings(ctx: ServiceContext, clientId: string, input: ClientSettingsInput): Promise<Client> {
   const client = await requireClient(ctx, clientId, "client.update_settings");
-  const parsed = clientSettingsSchema.safeParse(input);
+  const slug = input.slug?.trim() ? await resolveSlug(ctx, input.slug, input.name ?? client.name, clientId) : client.slug;
+  const parsed = clientSettingsSchema.safeParse({ ...input, slug });
   if (!parsed.success) throw new ValidationError("client", parsed.error.issues.map((i) => i.path.join(".")));
   const taxonomy: SegmentTaxonomy = {
     departments: parsed.data.departments,
