@@ -13,7 +13,7 @@ export interface ManagerOption {
   name: string;
 }
 
-export function ProjectForm({ t, locale, clientId, managers, project }: { t: Dictionary; locale: "he" | "en"; clientId: string; managers: ManagerOption[]; project?: Project }) {
+export function ProjectForm({ t, locale, clientId, managers, project, defaultManagerId }: { t: Dictionary; locale: "he" | "en"; clientId: string; managers: ManagerOption[]; project?: Project; defaultManagerId?: string }) {
   const [state, action] = useActionState(project ? updateProjectAction : createProjectAction, null);
   return (
     <form action={action} className="grid gap-4 md:grid-cols-2">
@@ -23,7 +23,7 @@ export function ProjectForm({ t, locale, clientId, managers, project }: { t: Dic
         <Input id="projectName" name="name" required minLength={2} defaultValue={project?.name ?? ""} />
       </Field>
       <Field label={t.projects.manager} htmlFor="managerUserId">
-        <Select id="managerUserId" name="managerUserId" defaultValue={project?.managerUserId ?? ""}>
+        <Select id="managerUserId" name="managerUserId" defaultValue={project?.managerUserId ?? (managers.some((m) => m.id === defaultManagerId) ? defaultManagerId : "")}>
           <option value="">—</option>
           {managers.map((m) => (
             <option key={m.id} value={m.id}>

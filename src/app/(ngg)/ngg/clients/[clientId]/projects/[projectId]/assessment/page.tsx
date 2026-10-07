@@ -17,6 +17,7 @@ import { SectionCard } from "@/components/builder/SectionCard";
 import { SectionConfigPanel, type SectionComparabilityInfo } from "@/components/builder/SectionConfigPanel";
 import { IntroForm } from "@/components/builder/IntroForm";
 import { CreateBaselineForm } from "./CreateBaselineForm";
+import { NextStepCard } from "@/components/ngg/NextStepCard";
 import { addCustomSectionAction, addSectionAction, createNextVersionAction } from "./actions";
 import { lt } from "@/domain/shared/localized";
 import { fmt } from "@/lib/i18n";
@@ -35,14 +36,26 @@ export default async function AssessmentPage({ params, searchParams }: PageProps
   const state = await getQuestionnaireState(ctx, projectId);
   const b = t.builder;
   const base = `/ngg/clients/${clientId}/projects/${projectId}/assessment`;
+  const nextStep = (
+    <NextStepCard
+      step={workspace.nextStep}
+      projectBase={`/ngg/clients/${clientId}/projects/${projectId}`}
+      currentPage="assessment"
+      completed={workspace.summary?.currentCompleted ?? 0}
+      canAct={canProject(ctx.actor, "wave.manage", { clientId, projectId })}
+      t={t}
+      locale={locale}
+    />
+  );
 
   if (!state) {
     return (
       <>
         <ClientWorkspaceHeader workspace={workspace} active="assessment" t={t} locale={locale} canManage={canEdit} />
+        {nextStep}
         <Tile padding="hero">
-          <TileTitle>{t.clients.emptyTitle}</TileTitle>
-          {canEdit ? <CreateBaselineForm clientId={clientId} projectId={projectId} defaultName={`${project.name} — Baseline`} t={t} locale={locale} /> : <EmptyState title={t.clients.emptyTitle} body={t.clients.emptyBody} />}
+          <TileTitle>{b.createBaseline}</TileTitle>
+          {canEdit ? <CreateBaselineForm clientId={clientId} projectId={projectId} defaultName={`${project.name} — Baseline`} t={t} locale={locale} /> : <EmptyState title={t.clients.emptyTitle} body={b.createBaselineNoPermission} />}
         </Tile>
       </>
     );
@@ -78,6 +91,7 @@ export default async function AssessmentPage({ params, searchParams }: PageProps
   return (
     <>
       <ClientWorkspaceHeader workspace={workspace} active="assessment" t={t} locale={locale} canManage={canEdit} />
+      {nextStep}
 
       <Tile className="flex flex-wrap items-center gap-4">
         <div className="min-w-0 flex-1">

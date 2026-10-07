@@ -13,9 +13,16 @@ export function CreateBaselineForm({ clientId, projectId, defaultName, t, locale
     <form action={action} className="flex flex-col gap-4">
       <input type="hidden" name="clientId" value={clientId} />
       <input type="hidden" name="projectId" value={projectId} />
-      <p className="max-w-prose text-[14px] text-text-muted">{t.builder.createBaselineHelp}</p>
-      <Field label={t.builder.introTitle} htmlFor="qname">
-        <Input id="qname" name="name" defaultValue={defaultName} />
+      <p className="max-w-prose text-[14px] text-ink-2">{t.builder.createBaselineHelp}</p>
+      <ul className="grid gap-2 text-[13px] text-ink-2 md:grid-cols-3">
+        {t.builder.createBaselineIncludes.map((item) => (
+          <li key={item} className="rounded-[14px] bg-sunken px-3 py-2">
+            {item}
+          </li>
+        ))}
+      </ul>
+      <Field label={t.builder.internalName} htmlFor="qname" help={t.builder.internalNameHelp}>
+        <Input id="qname" name="name" defaultValue={defaultName} maxLength={120} />
       </Field>
       <ActionNotice state={state} locale={locale} />
       <div>

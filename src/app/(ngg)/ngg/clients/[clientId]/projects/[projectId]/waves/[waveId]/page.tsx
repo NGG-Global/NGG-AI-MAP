@@ -21,6 +21,7 @@ import { fmt } from "@/lib/i18n";
 import { formatDate, formatPercent } from "@/lib/format";
 import { lt } from "@/domain/shared/localized";
 import { NotFoundError } from "@/server/shared/errors";
+import { NextStepCard } from "@/components/ngg/NextStepCard";
 import type { WaveStatus } from "@/domain/shared/enums";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +57,7 @@ export default async function WaveDetailPage({ params }: PageProps<"/ngg/clients
   return (
     <>
       <ClientWorkspaceHeader workspace={workspace} active="waves" t={t} locale={locale} canManage={canManage} />
+      <NextStepCard step={workspace.nextStep} projectBase={base} currentPage="wave" currentWaveId={waveId} completed={workspace.summary?.currentCompleted ?? 0} canAct={canManage} t={t} locale={locale} />
       <Tile className="flex flex-wrap items-center gap-4">
         <span className="text-[44px] font-black leading-none">{wave.code}</span>
         <div className="min-w-0 flex-1">
@@ -90,6 +92,8 @@ export default async function WaveDetailPage({ params }: PageProps<"/ngg/clients
         <Notice tone="info">
           {w.draftNotice}{" "}
           <Link href={`${base}/assessment?version=${wave.questionnaireVersionId}`} className="font-semibold">{w.editQuestionnaire} ←</Link>
+          {" · "}
+          <Link href={`${base}/assessment/preview?version=${wave.questionnaireVersionId}&persona=employee`} className="font-semibold">{t.builder.preview} ←</Link>
         </Notice>
       ) : null}
       {wave.status === "scheduled" ? <Notice tone="info">{w.scheduledNotice}</Notice> : null}

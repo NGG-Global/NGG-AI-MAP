@@ -8,6 +8,8 @@ import { ClientWorkspaceHeader } from "@/components/ngg/ClientWorkspaceHeader";
 import { Tile, TileTitle } from "@/components/ui/Tile";
 import { Notice } from "@/components/ui/Notice";
 import { WaveForm } from "./WaveForm";
+import { NextStepCard } from "@/components/ngg/NextStepCard";
+import { LinkButton } from "@/components/ui/Button";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +21,32 @@ export default async function NewWavePage({ params, searchParams }: PageProps<"/
   if (!canProject(ctx.actor, "wave.manage", { clientId, projectId })) notFound();
   const [qState, latest] = await Promise.all([getQuestionnaireState(ctx, projectId), getLatestWave(ctx, projectId)]);
   const type = sp.type === "follow_up" || latest ? "follow_up" : "baseline";
+  // Only one wave can be in progress; send the user to it instead of a form that will be refused.
+  const activeWave = workspace.summary?.waves.find((w) => w.status !== "closed") ?? null;
   return (
     <>
       <ClientWorkspaceHeader workspace={workspace} active="waves" t={t} locale={locale} canManage />
+      <NextStepCard step={workspace.nextStep} projectBase={`/ngg/clients/${clientId}/projects/${projectId}`} currentPage="wave_new" completed={workspace.summary?.currentCompleted ?? 0} canAct t={t} locale={locale} />
       <Tile padding="hero">
         <TileTitle>{type === "baseline" ? t.waves.newBaseline : t.waves.newFollowUp}</TileTitle>
         {!qState ? (
-          <Notice tone="warning">{t.waves.needQuestionnaire}</Notice>
+          <Notice tone="warning">
+            <span className="flex flex-wrap items-center gap-3">
+              {t.waves.needQuestionnaire}
+              <LinkButton href={`/ngg/clients/${clientId}/projects/${projectId}/assessment`} variant="primary" size="sm">
+                {t.nextStep.build_questionnaire.cta}
+              </LinkButton>
+            </span>
+          </Notice>
+        ) : activeWave ? (
+          <Notice tone="info">
+            <span className="flex flex-wrap items-center gap-3">
+              {t.waves.waveInProgress}
+              <LinkButton href={`/ngg/clients/${clientId}/projects/${projectId}/waves/${activeWave.id}`} variant="primary" size="sm">
+                {activeWave.code}
+              </LinkButton>
+            </span>
+          </Notice>
         ) : (
           <WaveForm
             t={t}
