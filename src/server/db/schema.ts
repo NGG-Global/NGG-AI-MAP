@@ -127,6 +127,31 @@ export const sessions = pgTable(
   (t) => [index("sessions_user_idx").on(t.userId)],
 );
 
+/** One-time password reset links, issued by an administrator (no email delivery in V1). */
+export const passwordResetTokens = pgTable(
+  "password_reset_tokens",
+  {
+    /** SHA-256 of the clear token; the clear token is shown once to the issuer. */
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdByUserId: text("created_by_user_id"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("password_reset_tokens_user_idx").on(t.userId)],
+);
+
+/** Fixed-window counters for rate limiting (keys hold hashes, never raw IPs or emails). */
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  count: integer("count").notNull().default(0),
+}
+);
+
 /* --------------------------------------------------------------- clients */
 
 export interface ClientBranding {
@@ -164,6 +189,8 @@ export const clients = pgTable(
     retentionDays: integer("retention_days").notNull().default(730),
     surveyContact: text("survey_contact"),
     status: clientStatusEnum("status").notNull().default("active"),
+    /** The NGG user who created the client; keeps access to it before any project exists. */
+    createdByUserId: text("created_by_user_id"),
     ...timestamps,
   },
   (t) => [uniqueIndex("clients_slug_idx").on(t.workspaceId, t.slug)],
@@ -483,6 +510,27 @@ export const distributionResults = pgTable(
     computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("distribution_results_unique_idx").on(t.waveId, t.itemCanonicalId, t.segmentKey, t.segmentValue)],
+);
+
+/**
+ * Cached, suppressed aggregates that need respondent-level data to compute (manager–team gaps and
+ * per-item stats). Written when results are computed so dashboards never read `responses`.
+ */
+export const aggregateResults = pgTable(
+  "aggregate_results",
+  {
+    id: text("id").primaryKey(),
+    waveId: text("wave_id")
+      .notNull()
+      .references(() => waves.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<"gap" | "item_stats">().notNull(),
+    metricId: text("metric_id").notNull(),
+    segmentKey: text("segment_key").notNull().default("all"),
+    segmentValue: text("segment_value").notNull().default("all"),
+    payload: jsonb("payload").notNull(),
+    computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("aggregate_results_unique_idx").on(t.waveId, t.kind, t.metricId, t.segmentKey, t.segmentValue)],
 );
 
 /* --------------------------------------------------------------- insights */

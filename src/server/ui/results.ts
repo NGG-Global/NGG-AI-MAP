@@ -35,7 +35,8 @@ export interface ResultsPageData {
 /** Shared loader for the NGG results tab and the client dashboard. */
 export async function loadResultsPage(ctx: ServiceContext, projectId: string, waveParam: string | undefined, segment: SegmentRef): Promise<ResultsPageData> {
   const waves = await listWaves(ctx, projectId);
-  const candidates = waves.filter((w) => w.status === "closed" || w.status === "open");
+  // Clients see closed waves only; NGG also sees the wave that is still collecting.
+  const candidates = waves.filter((w) => w.status === "closed" || (w.status === "open" && ctx.actor.kind === "ngg"));
   const selected = (waveParam ? candidates.find((w) => w.id === waveParam) : undefined) ?? [...candidates].reverse()[0] ?? null;
   if (!selected) return { waves, selected: null, view: null, definition: null, partial: {} };
   const view = await getWaveResults(ctx, selected.id, segment);

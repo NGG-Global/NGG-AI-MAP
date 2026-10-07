@@ -46,6 +46,8 @@ export const QUESTION_TYPES = [
   "short_text",
   "long_text",
 ] as const;
+/** Types a builder user can add as a custom question. Matrix needs a rows/columns editor first. */
+export const CUSTOM_QUESTION_TYPES = ["single_choice", "multi_select", "likert_5", "likert_7", "numeric", "short_text", "long_text"] as const satisfies readonly QuestionType[];
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 
 export const SECTION_CATEGORIES = [

@@ -1,4 +1,5 @@
 import { and, count, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { applyWaveSchedule } from "./waveSchedule";
 import { clients, goals, insights, respondents, users, waves, type Client, type Project, type Wave } from "@/server/db/schema";
 import type { ServiceContext } from "./context";
 import { assertWorkspace, listVisibleProjects } from "./access";
@@ -56,7 +57,12 @@ export async function getPortfolioOverview(ctx: ServiceContext): Promise<Portfol
 
   const [clientRows, waveRows, managerRows, userCounts, insightCounts, goalCounts, respondentCounts] = await Promise.all([
     ctx.db.select().from(clients).where(inArray(clients.id, clientIds)),
-    ctx.db.select().from(waves).where(inArray(waves.projectId, projectIds)).orderBy(desc(waves.createdAt)),
+    ctx.db
+      .select()
+      .from(waves)
+      .where(inArray(waves.projectId, projectIds))
+      .orderBy(desc(waves.createdAt))
+      .then((rows) => applyWaveSchedule(ctx.db, rows)),
     ctx.db.select({ id: users.id, name: users.name }).from(users).where(eq(users.kind, "ngg")),
     ctx.db
       .select({ clientId: users.clientId, n: count() })
@@ -181,7 +187,7 @@ export function pickCurrentWave(projectWaves: Wave[]): Wave | null {
 
 /** Lightweight per-project summary used by the client workspace header. */
 export async function getProjectSummary(ctx: ServiceContext, projectId: string) {
-  const projectWaves = await ctx.db.select().from(waves).where(eq(waves.projectId, projectId)).orderBy(waves.createdAt);
+  const projectWaves = await applyWaveSchedule(ctx.db, await ctx.db.select().from(waves).where(eq(waves.projectId, projectId)).orderBy(waves.createdAt));
   const counts = projectWaves.length
     ? await ctx.db
         .select({ waveId: respondents.waveId, status: respondents.status, n: count() })

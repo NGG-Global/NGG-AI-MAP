@@ -41,13 +41,18 @@ export async function loadActor(db: Db, user: User): Promise<Actor> {
       .from(projectAssignments)
       .innerJoin(projects, eq(projects.id, projectAssignments.projectId))
       .where(eq(projectAssignments.userId, user.id));
+    // A project manager who creates a client keeps access to it before any project exists.
+    const created = await db
+      .select({ clientId: clients.id })
+      .from(clients)
+      .where(and(eq(clients.createdByUserId, user.id), eq(clients.workspaceId, user.workspaceId)));
     return {
       kind: "ngg",
       userId: user.id,
       workspaceId: user.workspaceId,
       role: user.nggRole,
       assignedProjectIds: new Set(assignments.map((a) => a.projectId)),
-      assignedClientIds: new Set(assignments.map((a) => a.clientId)),
+      assignedClientIds: new Set([...assignments.map((a) => a.clientId), ...created.map((c) => c.clientId)]),
     };
   }
   if (!user.clientId || !user.clientRole) throw new Error(`client user ${user.id} is not bound to a client`);

@@ -193,8 +193,9 @@ initial password through a secure channel; there is no email delivery in this ve
   table is the only non-reconstructible data.
 - **Releases:** merge to the deployment branch; the host rebuilds. If `drizzle/` changed, run
   step 5 against production first (or rely on the automatic migration on first request).
-- **Rotating `SESSION_SECRET`:** signs everyone out and invalidates pseudonymous identity mappings;
-  rotate only between projects.
+- **Rotating `SESSION_SECRET`:** sessions are not affected, but pseudonymous identity mappings and
+  rate-limit counters are keyed with it, so rotate only between projects. In production the app
+  refuses to sign anyone in while the secret is missing or shorter than 32 characters.
 - **Audit log:** `/ngg/audit` (Super Admin) records admin and AI actions.
 - **Retention:** `clients.retention_days` is stored but not enforced automatically yet; purge raw
   responses with a scheduled job when a retention policy is agreed.

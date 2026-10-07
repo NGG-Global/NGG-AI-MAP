@@ -1,4 +1,6 @@
 import { nggPage } from "@/server/ui/page";
+import { ResetLinkButton } from "@/components/forms/ResetLinkButton";
+import { clientPasswordResetAction } from "../actions";
 import { loadClientWorkspace } from "@/server/ui/workspace";
 import { listClientUsers } from "@/server/services/users";
 import { listInvitations, pendingInvitations } from "@/server/services/invitations";
@@ -64,6 +66,9 @@ export default async function AccessPage({ params, searchParams }: PageProps<"/n
                       {user.status === "active" ? t.access.revoke : t.access.restore}
                     </Button>
                   </form>
+                  {user.status === "active" ? (
+                    <ResetLinkButton action={clientPasswordResetAction} hidden={{ clientId, userId: user.id }} labels={{ button: t.auth.resetLink, help: t.auth.resetLinkHelp, copy: t.common.copy, copied: t.common.copied }} locale={locale} />
+                  ) : null}
                 </InnerRow>
               ))}
             </ul>

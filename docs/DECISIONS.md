@@ -83,3 +83,30 @@ Master Questionnaire Copy v1.0 (`docs/questionnaire/NGG_AI_Assessment_Master_Que
   action that moves a project forward (project → baseline questionnaire → baseline wave → publish →
   collect → results). Every workspace screen shows the same step card, with a button when the action is
   elsewhere and a pointer when it is on the current page, so the guidance never contradicts itself.
+
+Pilot-readiness fixes:
+
+- **The wave calendar is applied on read.** A scheduled wave opens when its start date arrives and an
+  open wave closes (and computes results) the day after its end date. The transition runs whenever
+  waves are read (workspace screens, dashboards, survey links), conditional on the previous status, so
+  no background job is required and concurrent requests are safe. NGG can still close a wave by hand.
+- **Clients see closed waves only.** A wave that is still collecting is visible to NGG alone.
+  Manager–team gaps and per-item stats are cached in `aggregate_results` when results are computed,
+  so client requests never read `responses`; a closed wave computed before the cache existed is
+  backfilled once by the system.
+- **Password reset is an administrator-issued, one-time link** (48 hours, newest link only), because
+  V1 sends no email. Super admins reset NGG accounts; project managers reset users of their clients.
+  Using a link ends all of the user's sessions.
+- **The creator of a client keeps access to it** (`clients.created_by_user_id`), so a project manager
+  can add the first project to a client they created.
+- **Rate limiting is database-backed** (`rate_limits`, fixed windows, hashed keys): login by IP and by
+  email, invitation and reset links by IP, new public-link respondents by IP and wave (generous, since
+  employees often share an office IP), answer saves by respondent, and AI generation by user.
+- **Production refuses a missing or weak `SESSION_SECRET`** (under 32 characters or the example
+  value): sign-in shows a configuration error instead of silently using a known default.
+- **Open text reaches an AI provider only above max(privacy threshold, 10) answers**, after redaction of
+  emails, phones, links, ID numbers, titled names and names of known users. Client and project names
+  are replaced by neutral labels in every AI payload. Redaction is a safeguard, not a guarantee;
+  insights remain drafts reviewed by NGG.
+- **Custom matrix questions are disabled** until the builder has a rows/columns editor; a matrix with no
+  rows could not be answered and blocked respondents.

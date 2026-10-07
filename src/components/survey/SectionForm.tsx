@@ -98,7 +98,7 @@ export function SectionForm({
       </ol>
       {(state && !state.ok) || missing ? (
         <Notice tone="warning" role="alert">
-          {t.requiredMissing}
+          {state && !state.ok && state.error === "rate_limited" ? t.rateLimited : t.requiredMissing}
         </Notice>
       ) : null}
       <div className="sticky bottom-3 flex items-center gap-2 rounded-full bg-surface p-2 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">

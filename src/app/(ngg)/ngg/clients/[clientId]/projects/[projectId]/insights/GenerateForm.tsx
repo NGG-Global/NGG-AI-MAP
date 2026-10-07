@@ -33,7 +33,7 @@ export function GenerateForm({ t, locale, clientId, projectId, waves, metrics }:
         </Select>
       </Field>
       <div className="flex items-end"><SubmitButton variant="cta" pendingLabel="…">{i.generate}</SubmitButton></div>
-      <div className="md:col-span-4"><ActionNotice state={state} locale={locale} messages={{ ai_unavailable: i.aiUnavailable, ai_output: i.aiUnavailable }} /></div>
+      <div className="md:col-span-4"><ActionNotice state={state} locale={locale} messages={{ ai_unavailable: i.aiUnavailable, ai_output: i.aiUnavailable, rate_limited: i.rateLimited }} /></div>
     </form>
   );
 }

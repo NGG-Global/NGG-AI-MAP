@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { createPasswordResetLink } from "@/server/services/passwordResets";
 import { revalidatePath } from "next/cache";
 import { requireNggContext } from "@/server/auth/current";
 import { createProject, updateProject, assignNggUser, unassignNggUser } from "@/server/services/projects";
@@ -105,4 +106,12 @@ export async function toggleClientUserAction(formData: FormData): Promise<void> 
   if (field(formData, "mode") === "restore") await restoreClientUser(ctx, clientId, userId);
   else await revokeClientUser(ctx, clientId, userId);
   revalidatePath(`/ngg/clients/${clientId}/access`);
+}
+
+export async function clientPasswordResetAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return runAction(async () => {
+    const ctx = await requireNggContext();
+    const { url } = await createPasswordResetLink(ctx, field(formData, "userId"));
+    return { ok: true, data: { url } };
+  });
 }

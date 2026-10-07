@@ -9,6 +9,8 @@ import { verifyPassword } from "@/server/auth/password";
 import { createSession, deleteSession, SESSION_COOKIE } from "@/server/auth/session";
 import { env } from "@/server/shared/env";
 import { field, runAction, type ActionState } from "@/server/ui/actions";
+import { consumeRateLimit, RATE_RULES } from "@/server/security/rateLimit";
+import { clientIp } from "@/server/security/request";
 
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   return runAction(async () => {
@@ -16,6 +18,9 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
     const password = field(formData, "password");
     const next = field(formData, "next");
     const database = await db();
+    // Counted before the password check, so guessing is slowed whether or not the account exists.
+    await consumeRateLimit(database, RATE_RULES.loginByIp, await clientIp());
+    await consumeRateLimit(database, RATE_RULES.loginByEmail, email);
     const [user] = await database.select().from(users).where(eq(users.email, email)).limit(1);
     const valid = user ? await verifyPassword(password, user.passwordHash) : false;
     if (!user || !valid || user.status !== "active") {

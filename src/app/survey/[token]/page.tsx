@@ -50,6 +50,11 @@ export default async function SurveyLanding({ params, searchParams }: PageProps<
           </div>
         </div>
       </section>
+      {sp.busy === "1" ? (
+        <p role="alert" className="rounded-[20px] bg-warning-bg px-5 py-3 text-[14px] text-warning-text">
+          {t.survey.rateLimited}
+        </p>
+      ) : null}
       <section className="rounded-[28px] bg-surface p-6">
         <h2 className="text-[16px] font-bold">{t.survey.protectedTitle}</h2>
         <p className="mt-1 whitespace-pre-line text-[14px] leading-relaxed text-ink-2">{privacy}</p>
