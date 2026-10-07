@@ -20,7 +20,7 @@ import {
   type SectionDefinition,
 } from "@/domain/questionnaire/definition";
 import { assertEditable, createCustomCopy, LockedItemError, nextVersionLabel } from "@/domain/questionnaire/logic";
-import { AUDIENCES, QUESTION_TYPES } from "@/domain/shared/enums";
+import { AUDIENCES, CUSTOM_QUESTION_TYPES } from "@/domain/shared/enums";
 import { BASELINE_TEMPLATE_SECTION_KEYS, COPY_VERSION, SURVEY_COPY } from "@/domain/questionnaire/libraryContent";
 import { LIKERT_5_LABELS, LIKERT_7_LABELS } from "@/domain/questionnaire/library";
 import type { ServiceContext } from "./context";
@@ -358,7 +358,7 @@ export async function updateSectionConfig(ctx: ServiceContext, versionId: string
 }
 
 export const customQuestionSchema = z.object({
-  type: z.enum(QUESTION_TYPES),
+  type: z.enum(CUSTOM_QUESTION_TYPES),
   text: localizedTextSchema,
   helpText: localizedTextSchema.optional(),
   options: z.array(z.object({ value: z.string().min(1), label: localizedTextSchema })).optional(),

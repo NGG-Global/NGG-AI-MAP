@@ -19,7 +19,7 @@ import {
 } from "@/server/services/questionnaires";
 import { displayRuleSchema } from "@/domain/questionnaire/definition";
 import { LockedItemError } from "@/domain/questionnaire/logic";
-import { AUDIENCES, QUESTION_TYPES } from "@/domain/shared/enums";
+import { AUDIENCES, CUSTOM_QUESTION_TYPES } from "@/domain/shared/enums";
 import { field, runAction, type ActionState } from "@/server/ui/actions";
 import { z } from "zod";
 
@@ -111,7 +111,7 @@ export async function addCustomQuestionAction(_prev: ActionState, formData: Form
     const type = field(formData, "type");
     const audience = field(formData, "audience");
     await addCustomQuestion(ctx, field(formData, "versionId"), field(formData, "sectionId"), {
-      type: QUESTION_TYPES.find((t) => t === type) ?? "likert_5",
+      type: CUSTOM_QUESTION_TYPES.find((t) => t === type) ?? "likert_5",
       text: { he: field(formData, "text"), en: field(formData, "textEn") || undefined },
       helpText: field(formData, "helpText") ? { he: field(formData, "helpText") } : undefined,
       options: parseOptions(field(formData, "options")),

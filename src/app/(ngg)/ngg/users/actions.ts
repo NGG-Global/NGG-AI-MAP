@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireNggContext } from "@/server/auth/current";
 import { createNggUser, setNggUserStatus } from "@/server/services/users";
+import { createPasswordResetLink } from "@/server/services/passwordResets";
 import { field, runAction, type ActionState } from "@/server/ui/actions";
 import { NGG_ROLES } from "@/domain/shared/enums";
 
@@ -26,4 +27,12 @@ export async function toggleNggUserAction(formData: FormData): Promise<void> {
   const ctx = await requireNggContext();
   await setNggUserStatus(ctx, field(formData, "userId"), field(formData, "mode") === "enable" ? "active" : "disabled");
   revalidatePath("/ngg/users");
+}
+
+export async function nggPasswordResetAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return runAction(async () => {
+    const ctx = await requireNggContext();
+    const { url } = await createPasswordResetLink(ctx, field(formData, "userId"));
+    return { ok: true, data: { url } };
+  });
 }

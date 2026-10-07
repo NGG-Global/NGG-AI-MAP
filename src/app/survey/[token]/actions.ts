@@ -5,6 +5,8 @@ import { db } from "@/server/db/client";
 import { completeRespondent, loadAnswers, computeProgress, markStarted, saveAnswers, startPublicRespondent, AnswerValidationError } from "@/server/services/survey";
 import { setSurveyCookie, surveyPage } from "@/server/ui/survey";
 import { field, runAction, type ActionState } from "@/server/ui/actions";
+import { clientIp } from "@/server/security/request";
+import { RateLimitError } from "@/server/security/rateLimit";
 
 export async function startSurveyAction(formData: FormData): Promise<void> {
   const token = field(formData, "token");
@@ -13,7 +15,13 @@ export async function startSurveyAction(formData: FormData): Promise<void> {
   if (!ctx.access) redirect(`/survey/${token}`);
   const database = await db();
   if (ctx.access.kind === "public") {
-    const { token: respondentToken } = await startPublicRespondent(database, ctx.access);
+    let respondentToken: string;
+    try {
+      ({ token: respondentToken } = await startPublicRespondent(database, ctx.access, await clientIp()));
+    } catch (error) {
+      if (error instanceof RateLimitError) redirect(`/survey/${token}?busy=1${lang ? `&lang=${lang}` : ""}`);
+      throw error;
+    }
     await setSurveyCookie(token, respondentToken);
     redirect(`/survey/${token}/s/0${lang ? `?lang=${lang}` : ""}`);
   }

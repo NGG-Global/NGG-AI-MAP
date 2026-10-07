@@ -109,6 +109,7 @@ export async function createClient(ctx: ServiceContext, input: ClientInput): Pro
         primaryColor: parsed.data.primaryColor || undefined,
         logoText: parsed.data.logoText || parsed.data.name.slice(0, 1),
       },
+      createdByUserId: ctx.actor.userId,
     })
     .returning();
   await recordAudit(ctx, { action: "client.created", entityType: "client", entityId: id, clientId: id });

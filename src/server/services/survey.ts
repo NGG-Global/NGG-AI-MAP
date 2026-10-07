@@ -7,6 +7,8 @@ import { routeQuestionnaire, type RoutingContext } from "@/domain/questionnaire/
 import type { QuestionDefinition, QuestionnaireDefinition, SectionDefinition } from "@/domain/questionnaire/definition";
 import type { SegmentAttributes } from "@/domain/measurement/types";
 import { recordSystemAudit } from "./audit";
+import { applyWaveSchedule } from "./waveSchedule";
+import { consumeRateLimit, RATE_RULES } from "@/server/security/rateLimit";
 
 /**
  * Respondent-facing runtime. There is no actor: access is granted by the survey token alone.
@@ -39,7 +41,9 @@ export async function resolveSurvey(db: Db, token: string, cookieToken?: string)
   for (const candidate of candidates) {
     const [respondent] = await db.select().from(respondents).where(eq(respondents.tokenHash, hashToken(candidate))).limit(1);
     if (!respondent) continue;
-    const [wave] = await db.select().from(waves).where(eq(waves.id, respondent.waveId)).limit(1);
+    const [stored] = await db.select().from(waves).where(eq(waves.id, respondent.waveId)).limit(1);
+    if (!stored) continue;
+    const [wave] = await applyWaveSchedule(db, [stored]);
     if (!wave) continue;
     // a session cookie only applies to its own wave's public link
     if (candidate === cookieToken && wave.publicToken !== token) continue;
@@ -49,7 +53,9 @@ export async function resolveSurvey(db: Db, token: string, cookieToken?: string)
     return { access: { kind: "respondent", wave, respondent, ...bundle } };
   }
   // 2) public link
-  const [wave] = await db.select().from(waves).where(eq(waves.publicToken, token)).limit(1);
+  const [stored] = await db.select().from(waves).where(eq(waves.publicToken, token)).limit(1);
+  if (!stored) return { closed: "invalid" };
+  const [wave] = await applyWaveSchedule(db, [stored]);
   if (!wave) return { closed: "invalid" };
   const bundle = await loadWaveBundle(db, wave);
   if (!bundle) return { closed: "invalid" };
@@ -58,7 +64,7 @@ export async function resolveSurvey(db: Db, token: string, cookieToken?: string)
 }
 
 export function isWaveAccepting(wave: Wave): boolean {
-  if (wave.status !== "open") return false;
+  if (wave.status !== "open" && wave.status !== "scheduled") return false;
   const now = Date.now();
   if (wave.startAt && wave.startAt.getTime() > now) return false;
   if (wave.endAt && wave.endAt.getTime() + 86_400_000 < now) return false;
@@ -66,7 +72,8 @@ export function isWaveAccepting(wave: Wave): boolean {
 }
 
 /** Public link: creates an anonymous respondent and returns the clear session token for the cookie. */
-export async function startPublicRespondent(db: Db, access: Extract<SurveyAccess, { kind: "public" }>): Promise<{ respondent: Respondent; token: string }> {
+export async function startPublicRespondent(db: Db, access: Extract<SurveyAccess, { kind: "public" }>, ip = "unknown"): Promise<{ respondent: Respondent; token: string }> {
+  await consumeRateLimit(db, RATE_RULES.surveyStartByIp, `${access.wave.id}:${ip}`);
   const token = generateToken(24);
   const [respondent] = await db
     .insert(respondents)
@@ -223,6 +230,7 @@ export async function saveAnswers(
   input: Record<string, unknown>,
 ): Promise<{ answers: Record<string, ResponseValue>; progress: SurveyProgress }> {
   const { respondent, definition } = access;
+  await consumeRateLimit(db, RATE_RULES.surveySaveByRespondent, respondent.id);
   let answers = await loadAnswers(db, respondent.id);
   let attributes: SegmentAttributes = { ...respondent.segmentAttributes };
   const now = new Date();

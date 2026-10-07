@@ -1,5 +1,6 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
-import { insights, responses, respondents, waves, type Insight } from "@/server/db/schema";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { consumeRateLimit, RATE_RULES } from "@/server/security/rateLimit";
+import { insights, responses, respondents, users, waves, type Insight } from "@/server/db/schema";
 import { newId } from "@/lib/ids";
 import { ConflictError, NotFoundError, ValidationError } from "@/server/shared/errors";
 import { executiveSummarySchema, goalSuggestionsSchema, metricChangeExplanationSchema, openTextThemesSchema, type AnalyticalPayload, type EvidenceRef } from "@/domain/ai/contracts";
@@ -19,10 +20,18 @@ const MAX_OPEN_TEXT_SAMPLES = 60;
 
 /* ------------------------------------------------------- payload build */
 
+/** Minimum number of open-text answers before any of them is sent for analysis. */
+const MIN_OPEN_TEXT_SAMPLES = 10;
+
+async function knownNamesFor(ctx: ServiceContext, clientId: string): Promise<string[]> {
+  const rows = await ctx.db.select({ name: users.name }).from(users).where(or(eq(users.clientId, clientId), eq(users.kind, "ngg")));
+  return rows.map((r) => r.name).filter(Boolean);
+}
+
 /** Builds the sanitised payload for a wave. Open-text samples are only included for the themes task. */
 export async function buildPayloadForWave(ctx: ServiceContext, waveId: string, options: { includeOpenText?: boolean } = {}): Promise<AnalyticalPayload> {
   const view = await getWaveResults(ctx, waveId);
-  const { project } = await requireProject(ctx, view.wave.projectId, "insight.generate");
+  await requireProject(ctx, view.wave.projectId, "insight.generate");
   const barriersDist = view.distributions.find((d) => d.itemCanonicalId === "BARRIER_01");
   let barriers: Array<{ label: string; share: number }> = [];
   if (barriersDist && !barriersDist.suppressed && view.wave.questionnaireVersionId) {
@@ -31,6 +40,7 @@ export async function buildPayloadForWave(ctx: ServiceContext, waveId: string, o
     barriers = Object.entries(barriersDist.buckets).map(([value, share]) => ({ label: lt(q?.options?.find((o) => o.value === value)?.label, view.client.locale) || value, share }));
   }
   let openTextSamples: string[] = [];
+  let knownNames: string[] = [];
   if (options.includeOpenText) {
     // Only NGG users with raw access may feed open text to the provider, and only redacted, sampled text.
     await requireProject(ctx, view.wave.projectId, "results.view_raw");
@@ -40,10 +50,15 @@ export async function buildPayloadForWave(ctx: ServiceContext, waveId: string, o
       .innerJoin(respondents, eq(respondents.id, responses.respondentId))
       .where(and(eq(responses.waveId, waveId), inArray(responses.questionCanonicalId, ["OPEN_01", "OPEN_02"]), eq(respondents.status, "completed")));
     openTextSamples = rows.map((r) => (typeof r.value === "string" ? r.value.trim() : "")).filter((s) => s.length > 3).slice(0, MAX_OPEN_TEXT_SAMPLES);
+    // Below the privacy threshold a handful of answers could identify their authors: send none.
+    if (openTextSamples.length < Math.max(view.client.privacyThreshold, MIN_OPEN_TEXT_SAMPLES)) openTextSamples = [];
+    else knownNames = await knownNamesFor(ctx, view.client.id);
   }
   return buildAnalyticalPayload({
-    clientLabel: view.client.name,
-    projectLabel: project.name,
+    // The provider needs no client identity: labels stay generic (data minimisation).
+    clientLabel: view.client.locale === "he" ? "הארגון" : "The organization",
+    projectLabel: view.client.locale === "he" ? "פרויקט אבחון" : "Assessment project",
+    knownNames,
     locale: view.client.locale,
     waveCode: view.wave.code,
     baselineWaveCode: view.baseline?.code ?? null,
@@ -114,6 +129,8 @@ export async function generateInsight(ctx: ServiceContext, waveId: string, type:
   const [wave] = await ctx.db.select().from(waves).where(eq(waves.id, waveId)).limit(1);
   if (!wave) throw new NotFoundError("wave");
   const { client } = await requireProject(ctx, wave.projectId, "insight.generate");
+  // Each generation may call a paid external model.
+  await consumeRateLimit(ctx.db, RATE_RULES.aiByUser, ctx.actor.userId);
   const payload = await buildPayloadForWave(ctx, waveId, { includeOpenText: type === "open_text_themes" });
   const provider = getAIProvider();
   let raw: unknown;
@@ -130,7 +147,8 @@ export async function generateInsight(ctx: ServiceContext, waveId: string, type:
         raw = await provider.generateManagementGoals(payload);
         break;
       case "open_text_themes":
-        raw = await provider.analyzeOpenTextThemes(payload);
+        // Never call the provider with too few answers; record an "insufficient evidence" draft instead.
+        raw = payload.openTextSamples.length === 0 ? { themes: [], responseCount: 0, insufficientEvidence: true } : await provider.analyzeOpenTextThemes(payload);
         break;
     }
   } catch (error) {

@@ -9,7 +9,8 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { Button } from "@/components/ui/Button";
 import { formatDateTime } from "@/lib/format";
 import { UserForm } from "./UserForm";
-import { toggleNggUserAction } from "./actions";
+import { nggPasswordResetAction, toggleNggUserAction } from "./actions";
+import { ResetLinkButton } from "@/components/forms/ResetLinkButton";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,9 @@ export default async function UsersPage() {
                     <input type="hidden" name="mode" value={user.status === "active" ? "disable" : "enable"} />
                     <Button type="submit" variant={user.status === "active" ? "danger" : "secondary"} size="sm">{user.status === "active" ? t.users.disable : t.users.enable}</Button>
                   </form>
+                ) : null}
+                {user.status === "active" ? (
+                  <ResetLinkButton action={nggPasswordResetAction} hidden={{ userId: user.id }} labels={{ button: t.auth.resetLink, help: t.auth.resetLinkHelp, copy: t.common.copy, copied: t.common.copied }} locale={locale} />
                 ) : null}
               </InnerRow>
             ))}

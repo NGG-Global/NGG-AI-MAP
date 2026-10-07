@@ -10,6 +10,7 @@ import {
   type WaveAudienceConfig,
 } from "@/server/db/schema";
 import { newId } from "@/lib/ids";
+import { applyWaveSchedule } from "./waveSchedule";
 import { env } from "@/server/shared/env";
 import { generateToken, hashToken, hmacIdentifier } from "@/server/auth/tokens";
 import { ConflictError, NotFoundError, ValidationError } from "@/server/shared/errors";
@@ -50,12 +51,15 @@ export interface WaveWithCounts extends Wave {
 
 export async function listWaves(ctx: ServiceContext, projectId: string): Promise<WaveWithCounts[]> {
   await requireProject(ctx, projectId, "project.view");
-  const rows = await ctx.db
+  const fetched = await ctx.db
     .select({ wave: waves, version: questionnaireVersions })
     .from(waves)
     .leftJoin(questionnaireVersions, eq(questionnaireVersions.id, waves.questionnaireVersionId))
     .where(eq(waves.projectId, projectId))
     .orderBy(asc(waves.createdAt));
+  // Open waves whose start date arrived and close waves whose end date passed before anyone sees them.
+  const scheduled = await applyWaveSchedule(ctx.db, fetched.map((r) => r.wave));
+  const rows = fetched.map((r, i) => ({ wave: scheduled[i]!, version: r.version }));
   const counts = rows.length
     ? await ctx.db
         .select({ waveId: respondents.waveId, status: respondents.status, n: count() })

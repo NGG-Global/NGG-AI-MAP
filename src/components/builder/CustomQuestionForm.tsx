@@ -8,7 +8,7 @@ import { ActionNotice } from "@/components/forms/ActionNotice";
 import { Button } from "@/components/ui/Button";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale, QuestionType } from "@/domain/shared/enums";
-import { QUESTION_TYPES } from "@/domain/shared/enums";
+import { CUSTOM_QUESTION_TYPES } from "@/domain/shared/enums";
 
 export function CustomQuestionForm({ versionId, sectionId, clientId, projectId, t, locale }: { versionId: string; sectionId: string; clientId: string; projectId: string; t: Dictionary; locale: Locale }) {
   const b = t.builder;
@@ -37,7 +37,7 @@ export function CustomQuestionForm({ versionId, sectionId, clientId, projectId, 
         </Field>
         <Field label={b.questionType} htmlFor={`cq-type-${sectionId}`}>
           <Select id={`cq-type-${sectionId}`} name="type" value={type} onChange={(e) => setType(e.target.value as QuestionType)}>
-            {QUESTION_TYPES.map((qt) => (
+            {CUSTOM_QUESTION_TYPES.map((qt) => (
               <option key={qt} value={qt}>
                 {b.typeLabels[qt]}
               </option>

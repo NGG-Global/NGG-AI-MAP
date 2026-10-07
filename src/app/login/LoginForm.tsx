@@ -18,7 +18,7 @@ export function LoginForm({ t, locale, next }: { t: Dictionary["auth"]; locale: 
       <Field label={t.password} htmlFor="password">
         <Input id="password" name="password" type="password" autoComplete="current-password" required dir="ltr" />
       </Field>
-      <ActionNotice state={state} locale={locale} messages={{ invalid_credentials: t.invalidCredentials }} />
+      <ActionNotice state={state} locale={locale} messages={{ invalid_credentials: t.invalidCredentials, rate_limited: t.rateLimited }} />
       <SubmitButton variant="cta" size="lg" className="mt-2 w-full">
         {t.login}
       </SubmitButton>
