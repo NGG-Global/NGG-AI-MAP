@@ -57,7 +57,7 @@ export function SectionCard({
       ? b.managersOnly
       : section.audience === "employees"
         ? b.employeesOnly
-        : section.displayRules.some((r) => r.field === "q:ctx_ai_use_30d")
+        : section.displayRules.some((r) => r.field === "q:USE_01")
           ? b.skipNonUsers
           : b.allRespondents;
   const shown = expanded ? section.questions : section.questions.slice(0, PREVIEW_COUNT);

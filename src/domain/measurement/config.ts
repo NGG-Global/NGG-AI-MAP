@@ -12,6 +12,8 @@ export const metricKindSchema = z.enum([
   "share",
   /** Mean of per-respondent counts of selected options in a multi-select (breadth). */
   "breadth",
+  /** Share of respondents (0–100) whose scale score for the items is at or above `threshold`. */
+  "threshold_share",
 ]);
 
 export const metricGroupSchema = z.enum([
@@ -22,6 +24,10 @@ export const metricGroupSchema = z.enum([
   "adoption",
   "impact",
   "manager_team_pair",
+  "agentic_work_dimension",
+  "adoption_funnel",
+  "trust",
+  "team_experience",
 ]);
 export type MetricGroup = z.infer<typeof metricGroupSchema>;
 
@@ -32,7 +38,7 @@ export const metricConfigSchema = z.object({
   description: localizedTextSchema.optional(),
   kind: metricKindSchema,
   group: metricGroupSchema,
-  /** Parent metric for dimension metrics (e.g. `ai_literacy`). */
+  /** Parent metric for dimension metrics (e.g. `gail_total`). */
   parentId: z.string().optional(),
   sourceType: z.enum(["validated", "ngg_measure", "client_custom"]),
   scaleMin: z.number(),
@@ -45,6 +51,10 @@ export const metricConfigSchema = z.object({
   minAnsweredRatio: z.number().min(0).max(1).default(0.5),
   /** For `share` metrics: option values counted as positive. */
   positiveValues: z.array(z.string()).optional(),
+  /** For `threshold_share`: minimum per-respondent mean counted as positive (e.g. 4 = "often"). */
+  threshold: z.number().optional(),
+  /** Higher is not automatically better (e.g. trust): deltas are shown without good/bad colouring. */
+  neutralDirection: z.boolean().default(false),
   /** Whether this metric is presented in the core profile of the client dashboard. */
   coreProfile: z.boolean().default(false),
   /** Audience the metric is computed for (manager-only metrics are computed on managers). */
@@ -61,4 +71,9 @@ export type MetricConfig = z.infer<typeof metricConfigSchema>;
 
 export function parseMetricConfig(input: unknown): MetricConfig {
   return metricConfigSchema.parse(input);
+}
+
+/** Shares (0–100) are displayed as percentages rather than "x / max". */
+export function isPercentMetric(metric: Pick<MetricConfig, "kind">): boolean {
+  return metric.kind === "share" || metric.kind === "threshold_share";
 }

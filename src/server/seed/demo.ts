@@ -42,36 +42,33 @@ const DEPTS_GAMMA = [
 
 const GAMMA_T0: WaveProfile = {
   base: 3.0,
-  byPrefix: { usage_: 3.0, ai_lit_: 2.9, agw_: 2.4, ver_: 3.8, en_access: 2.8, en_policy: 2.5, en_know: 2.6, en_cult: 3.2, en_strat: 2.6, am_self: 3.1, am_humans: 3.0, am_ai: 3.2, am_sys: 2.5, imp_: 3.1, trust_: 3.2 },
+  byPrefix: { GAIL_: 2.9, AW_ASSIST: 3.6, AW_COLLAB: 2.8, AW_DELEGATE: 2.1, AW_ORCH: 1.8, STIAS_: 3.2, VERIFY_: 3.6, ORG_ACCESS: 2.8, ORG_POLICY: 2.5, ORG_LEARN: 2.6, ORG_CULTURE: 3.2, ORG_STRATEGY: 2.6, AM_SELF: 3.1, AM_AI: 3.2, AM_SYSTEMS: 2.5, IMPACT_: 3.2, USE_05: 2.8, USE_07: 2.9 },
   managerSelf: 4.0,
   teamExperience: 3.3,
-  usageWeights: { none: 2.2, once_twice: 2.5, weekly: 2.5, several_weekly: 1.8, daily: 1.0 },
-  patternWeights: { assist: 0.78, collaborate: 0.45, delegate: 0.16, orchestrate: 0.05 },
-  barrierWeights: { no_access: 0.35, no_time: 0.45, unclear_policy: 0.5, data_concerns: 0.3, quality: 0.2, skills: 0.35, no_need: 0.1, manager: 0.08, job_fear: 0.12 },
+  usageWeights: { none: 2.2, lt_weekly: 2.5, days_1_2: 2.5, days_3_4: 1.8, almost_daily: 1.0, several_daily: 0.4 },
+  barrierWeights: { unclear_value: 0.25, skills: 0.35, time: 0.45, access: 0.35, unclear_policy: 0.5, privacy: 0.3, quality_trust: 0.2, not_connected: 0.2, management_support: 0.1, role_concern: 0.12, not_suitable: 0.1, technical: 0.08 },
   managerShare: 0.17,
   departments: DEPTS_GAMMA,
 };
 
 const GAMMA_T1: WaveProfile = {
   base: 3.3,
-  byPrefix: { usage_: 3.6, ai_lit_: 3.4, agw_: 2.8, ver_: 3.9, en_access: 3.4, en_policy: 2.6, en_know: 3.1, en_cult: 3.4, en_strat: 2.9, am_self: 3.5, am_humans: 3.3, am_ai: 3.6, am_sys: 3.4, imp_: 3.5, trust_: 3.4 },
+  byPrefix: { GAIL_: 3.4, AW_ASSIST: 3.9, AW_COLLAB: 3.2, AW_DELEGATE: 2.6, AW_ORCH: 2.2, STIAS_: 3.4, VERIFY_: 3.8, ORG_ACCESS: 3.4, ORG_POLICY: 2.6, ORG_LEARN: 3.1, ORG_CULTURE: 3.4, ORG_STRATEGY: 2.9, AM_SELF: 3.5, AM_AI: 3.6, AM_SYSTEMS: 3.4, IMPACT_: 3.6, USE_05: 3.3, USE_07: 3.5 },
   managerSelf: 4.4,
   teamExperience: 3.5,
-  usageWeights: { none: 0.8, once_twice: 1.5, weekly: 2.5, several_weekly: 2.7, daily: 2.5 },
-  patternWeights: { assist: 0.84, collaborate: 0.61, delegate: 0.29, orchestrate: 0.11 },
-  barrierWeights: { no_access: 0.18, no_time: 0.42, unclear_policy: 0.48, data_concerns: 0.28, quality: 0.22, skills: 0.25, no_need: 0.08, manager: 0.06, job_fear: 0.1 },
+  usageWeights: { none: 0.8, lt_weekly: 1.5, days_1_2: 2.5, days_3_4: 2.7, almost_daily: 2.0, several_daily: 0.9 },
+  barrierWeights: { unclear_value: 0.18, skills: 0.25, time: 0.42, access: 0.18, unclear_policy: 0.48, privacy: 0.28, quality_trust: 0.22, not_connected: 0.25, management_support: 0.08, role_concern: 0.1, not_suitable: 0.08, technical: 0.1 },
   managerShare: 0.16,
   departments: DEPTS_GAMMA,
 };
 
 const ALPHA_T0: WaveProfile = {
   base: 2.9,
-  byPrefix: { usage_: 2.8, ai_lit_: 2.7, agw_: 2.2, ver_: 3.5, en_access: 2.4, en_policy: 2.9, en_know: 2.4, en_cult: 2.9, en_strat: 2.8, am_self: 3.0, am_humans: 3.0, am_ai: 2.9, am_sys: 2.3, imp_: 2.9, trust_: 3.0 },
+  byPrefix: { GAIL_: 2.7, AW_ASSIST: 3.4, AW_COLLAB: 2.6, AW_DELEGATE: 1.9, AW_ORCH: 1.6, STIAS_: 3.0, VERIFY_: 3.4, ORG_ACCESS: 2.4, ORG_POLICY: 2.9, ORG_LEARN: 2.4, ORG_CULTURE: 2.9, ORG_STRATEGY: 2.8, AM_SELF: 3.0, AM_AI: 2.9, AM_SYSTEMS: 2.3, IMPACT_: 2.9, USE_05: 2.6, USE_07: 2.5 },
   managerSelf: 3.9,
   teamExperience: 3.2,
-  usageWeights: { none: 2.5, once_twice: 2.5, weekly: 2.5, several_weekly: 1.5, daily: 1.0 },
-  patternWeights: { assist: 0.7, collaborate: 0.4, delegate: 0.12, orchestrate: 0.03 },
-  barrierWeights: { no_access: 0.5, no_time: 0.4, unclear_policy: 0.35, data_concerns: 0.45, quality: 0.2, skills: 0.3, no_need: 0.12, manager: 0.1, job_fear: 0.15 },
+  usageWeights: { none: 2.5, lt_weekly: 2.5, days_1_2: 2.5, days_3_4: 1.5, almost_daily: 0.8, several_daily: 0.3 },
+  barrierWeights: { unclear_value: 0.3, skills: 0.3, time: 0.4, access: 0.5, unclear_policy: 0.35, privacy: 0.45, quality_trust: 0.2, not_connected: 0.15, management_support: 0.12, role_concern: 0.15, not_suitable: 0.12, technical: 0.1 },
   managerShare: 0.15,
   departments: [
     { name: "טכנולוגיה", weight: 2, shift: 0.3 },
@@ -115,7 +112,7 @@ export async function seedDemo(db: Db, options: SeedOptions): Promise<SeedSummar
       industry: c.industry,
       organizationSize: c.organizationSize,
       branding: c.branding,
-      segmentTaxonomy: { departments: c.departments, roleFamilies: ["מקצועי", "ניהולי", "תפעולי", "מטה"], seniorityGroups: ["עד שנתיים", "2–5 שנים", "5–10 שנים", "מעל 10 שנים"], locations: [] },
+      segmentTaxonomy: { departments: c.departments, roleFamilies: [], seniorityGroups: [], locations: [] },
       surveyContact: "hr@example.org",
       createdAt: c.createdAt,
       updatedAt: c.createdAt,
@@ -162,7 +159,7 @@ export async function seedDemo(db: Db, options: SeedOptions): Promise<SeedSummar
     await reviewInsight(ctx, summaryT0.id, "published");
     const summaryT1 = await generateInsight(ctx, t1.id, "executive_summary");
     await reviewInsight(ctx, summaryT1.id, "published");
-    await generateInsight(ctx, t1.id, "explain_change", { metricId: "ai_literacy" }); // left as draft → review queue
+    await generateInsight(ctx, t1.id, "explain_change", { metricId: "gail_total" }); // left as draft → review queue
     const suggestions = await generateInsight(ctx, t1.id, "goal_suggestions");
     await reviewInsight(ctx, suggestions.id, "reviewed");
     const themes = await generateInsight(ctx, t1.id, "open_text_themes");
@@ -173,7 +170,7 @@ export async function seedDemo(db: Db, options: SeedOptions): Promise<SeedSummar
       description: "כל מנהל/ת בוחר/ת זרימת עבודה חוזרת אחת, מגדיר/ה אילו שלבים מואצלים ל-AI ואיפה נקודת הבקרה האנושית.",
       ownerName: "סמנכ״לית תפעול",
       scope: "management",
-      relatedMetricIds: ["agentic_manage_systems", "pattern_delegate", "verification"],
+      relatedMetricIds: ["agentic_manage_systems", "aw_delegate", "verification_behavior"],
       targetDirection: "increase",
       actions: ["מיפוי זרימות עבודה חוזרות בכל צוות", "הגדרת זכויות החלטה ונקודת בקרה אנושית", "פיילוט בשלושה צוותים", "מדידה חוזרת ב-T2"],
       successEvidence: ["זרימת העבודה מתועדת", "זכויות החלטה מוגדרות", "נקודת בקרה אנושית מוגדרת", "שינוי במדד ב-T2"],
@@ -187,7 +184,7 @@ export async function seedDemo(db: Db, options: SeedOptions): Promise<SeedSummar
       description: "צמצום פער התפיסה בין מנהלים לצוותים בבהירות הציפיות.",
       ownerName: "סמנכ״ל משאבי אנוש",
       scope: "organization",
-      relatedMetricIds: ["gap_ai_clarity", "enablement_policy_governance"],
+      relatedMetricIds: ["gap_expectations", "enablement_policy_governance"],
       targetDirection: "increase",
       actions: ["שיחת ציפיות בכל צוות", "הנחיה כתובה של עמוד אחד", "סקר דופק אחרי חודש"],
       successEvidence: ["הנחיה כתובה קיימת", "הפער יורד מתחת ל-0.3"],
@@ -199,7 +196,7 @@ export async function seedDemo(db: Db, options: SeedOptions): Promise<SeedSummar
       title: "תוכנית למידה מדורגת לאוריינות AI ביחידות התפעול",
       ownerName: "מנהלת למידה ופיתוח",
       scope: "unit",
-      relatedMetricIds: ["ai_literacy", "enablement_knowledge_learning"],
+      relatedMetricIds: ["gail_total", "enablement_knowledge_learning"],
       targetDirection: "increase",
       actions: ["סדנת יסודות לכל עובדי התפעול", "קהילת תרגול חודשית"],
       successEvidence: ["80% השתתפות", "אוריינות AI בתפעול עולה ב-T2"],

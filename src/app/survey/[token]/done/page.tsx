@@ -5,6 +5,7 @@ import { NggLogo } from "@/components/shell/NggLogo";
 import { formatDate } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
 import { Icons } from "@/components/shell/icons";
+import { lt } from "@/domain/shared/localized";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export default async function SurveyDonePage({ params, searchParams }: PageProps
   const ctx = await surveyPage(token, typeof sp.lang === "string" ? sp.lang : "");
   const { t, locale, dir } = ctx;
   if (!ctx.access) return <SurveyClosed reason={ctx.closed === "completed" ? "completed" : (ctx.closed ?? "invalid")} t={t.survey} locale={locale} dir={dir} />;
-  const { client, wave } = ctx.access;
+  const { client, wave, definition } = ctx.access;
   const steps = [wave.endAt ? fmt(t.survey.step1, { date: formatDate(wave.endAt, locale) }) : t.survey.step1NoDate, t.survey.step2, t.survey.step3];
   return (
     <SurveyFrame client={client} locale={locale} dir={dir}>
@@ -22,13 +23,20 @@ export default async function SurveyDonePage({ params, searchParams }: PageProps
         <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-success-bg text-success" aria-hidden="true">
           <Icons.check />
         </span>
-        <h1 className="mt-4 text-[34px] font-black leading-[1.1]">
-          {t.survey.thanksTitle}
-          <br />
-          {t.survey.thanksSaved}
-        </h1>
-        <p className="mt-3 text-[15px] text-ink-2">{t.survey.thanksBody}</p>
+        {definition.completionTitle ? (
+          <h1 className="mt-4 text-[34px] font-black leading-[1.1]">{lt(definition.completionTitle, locale)}</h1>
+        ) : (
+          <h1 className="mt-4 text-[34px] font-black leading-[1.1]">
+            {t.survey.thanksTitle}
+            <br />
+            {t.survey.thanksSaved}
+          </h1>
+        )}
+        <p className="mt-3 text-[15px] text-ink-2">{definition.completionBody ? lt(definition.completionBody, locale) : t.survey.thanksBody}</p>
+        {definition.completionNote ? <p className="mt-3 text-[15px] text-ink-2">{lt(definition.completionNote, locale)}</p> : null}
       </section>
+      {/* Questionnaires built from the Master Copy show only COMPLETE_01–02 and the optional project line. */}
+      {definition.completionBody ? null : (
       <section className="rounded-[28px] bg-surface p-6">
         <h2 className="text-[16px] font-bold">{t.survey.whatNext}</h2>
         <ol className="mt-3 flex flex-col gap-2">
@@ -40,6 +48,7 @@ export default async function SurveyDonePage({ params, searchParams }: PageProps
           ))}
         </ol>
       </section>
+      )}
       <section className="flex items-center gap-3 rounded-[28px] bg-surface p-5 text-[12px] text-text-muted" aria-label="NGG">
         <NggLogo compact />
         <span>{t.survey.aboutNgg}</span>

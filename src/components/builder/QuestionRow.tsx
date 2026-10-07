@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { Notice } from "@/components/ui/Notice";
 import { lt } from "@/domain/shared/localized";
+import { previewText } from "@/domain/questionnaire/piping";
 import { fmt, type Dictionary } from "@/lib/i18n";
 import type { QuestionDefinition } from "@/domain/questionnaire/definition";
 import type { Locale } from "@/domain/shared/enums";
@@ -34,7 +35,7 @@ export function QuestionRow({ question, index, versionId, clientId, projectId, e
           {index + 1}
         </span>
         <div className="min-w-0 flex-1">
-          <p className={question.wordingStatus === "placeholder" ? "text-text-muted" : ""}>{lt(question.text, locale)}</p>
+          <p className={question.wordingStatus === "placeholder" ? "text-text-muted" : ""}>{previewText(question.text, locale)}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-text-muted">
             <span>{b.typeLabels[question.type]}</span>
             {question.locked ? <StatusPill tone="info" dot={false}>🔒 {b.locked}</StatusPill> : null}

@@ -6,6 +6,7 @@ import { SourceBadge } from "@/components/ui/StatusPill";
 import { lt } from "@/domain/shared/localized";
 import { fmt } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
+import { SOURCE_CITATIONS } from "@/domain/questionnaire/libraryContent";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,16 @@ export default async function MethodologyPage({ params, searchParams }: PageProp
             <TileTitle>{m.scoring}</TileTitle>
             <p className="text-[13px] text-ink-2">{m.scoringHelp}</p>
           </Tile>
+          {bySource("validated").length ? (
+            <Tile>
+              <TileTitle>{m.sources}</TileTitle>
+              <ul className="flex flex-col gap-2 text-[12px] text-ink-2" dir="ltr">
+                <li>{SOURCE_CITATIONS.gail}</li>
+                <li>{SOURCE_CITATIONS.stias}</li>
+              </ul>
+              {def?.copyVersion ? <p className="mt-2 text-[12px] text-text-muted">{fmt(m.copyVersion, { v: def.copyVersion })}</p> : null}
+            </Tile>
+          ) : null}
           <Tile>
             <TileTitle>{m.ai}</TileTitle>
             <p className="text-[13px] text-ink-2">{m.aiHelp}</p>

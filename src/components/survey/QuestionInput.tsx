@@ -3,16 +3,18 @@
 import { useState } from "react";
 import { lt } from "@/domain/shared/localized";
 import { cn } from "@/lib/cn";
-import type { QuestionDefinition } from "@/domain/questionnaire/definition";
+import type { ChoiceOption, QuestionDefinition } from "@/domain/questionnaire/definition";
 import type { ResponseValue } from "@/server/db/schema";
 import type { Locale } from "@/domain/shared/enums";
 
 export interface QuestionInputProps {
   question: QuestionDefinition;
+  /** Overrides the question's options (piped from an earlier answer). */
+  options?: ChoiceOption[];
   locale: Locale;
   initial: ResponseValue | undefined;
   hasAnswer: boolean;
-  labels: { pnta: string; chooseMany: string; chooseOne: string; number: string; textPlaceholder: string };
+  labels: { pnta: string; chooseMany: string; chooseOne: string; number: string; textPlaceholder: string; chooseUpTo: string };
   onAutosave: (questionId: string, value: unknown) => void;
 }
 
@@ -21,7 +23,11 @@ const optionIdle = "border-line bg-surface hover:border-ink";
 const optionActive = "border-ink bg-ink text-white";
 
 /** Accessible, touch-friendly controls. Values are posted as form fields and autosaved on change. */
-export function QuestionInput({ question, locale, initial, hasAnswer, labels, onAutosave }: QuestionInputProps) {
+/** Stored value of a scale item's "Not relevant" / "Don't know" option; never scored. */
+const NA = "na";
+
+export function QuestionInput({ question, options: optionsOverride, locale, initial, hasAnswer, labels, onAutosave }: QuestionInputProps) {
+  const options = optionsOverride ?? question.options ?? [];
   const [pnta, setPnta] = useState(hasAnswer && initial === null);
   const [value, setValue] = useState<ResponseValue | undefined>(initial);
   const name = `a.${question.canonicalId}`;
@@ -60,6 +66,12 @@ export function QuestionInput({ question, locale, initial, hasAnswer, labels, on
               </label>
             );
           })}
+          {question.naOption ? (
+            <label className={cn(optionBase, !pnta && value === NA ? optionActive : "border-dashed border-line bg-sunken text-ink-2 hover:border-ink", "mt-1 cursor-pointer")}>
+              <input type="radio" name={name} value={NA} checked={!pnta && value === NA} onChange={() => save(NA)} className="sr-only" />
+              <span>{lt(question.naOption, locale)}</span>
+            </label>
+          ) : null}
         </div>
       );
       break;
@@ -67,7 +79,7 @@ export function QuestionInput({ question, locale, initial, hasAnswer, labels, on
     case "single_choice":
       control = (
         <div role="radiogroup" aria-label={lt(question.text, locale)} className="flex flex-col gap-2">
-          {(question.options ?? []).map((o) => {
+          {options.map((o) => {
             const active = !pnta && value === o.value;
             return (
               <label key={o.value} className={cn(optionBase, active ? optionActive : optionIdle, "cursor-pointer")}>
@@ -81,21 +93,30 @@ export function QuestionInput({ question, locale, initial, hasAnswer, labels, on
       break;
     case "multi_select": {
       const selected = Array.isArray(value) ? value : [];
+      const max = question.maxSelections;
+      const atMax = max != null && selected.length >= max;
+      const toggle = (o: ChoiceOption, active: boolean) => {
+        if (active) return save(selected.filter((v) => v !== o.value));
+        // An exclusive answer ("No significant barrier") replaces every other selection, and vice versa.
+        if (o.exclusive) return save([o.value]);
+        const exclusives = new Set(options.filter((x) => x.exclusive).map((x) => x.value));
+        return save([...selected.filter((v) => !exclusives.has(v)), o.value]);
+      };
       control = (
         <div role="group" aria-label={lt(question.text, locale)} className="flex flex-col gap-2">
-          <p className="text-[12px] text-text-muted">{labels.chooseMany}</p>
-          {(question.options ?? []).map((o) => {
+          <p className="text-[12px] text-text-muted" aria-live="polite">
+            {max ? labels.chooseUpTo.replace("{n}", String(max)) : labels.chooseMany}
+          </p>
+          {options.map((o) => {
             const active = !pnta && selected.includes(o.value);
+            // At the limit, further non-exclusive options are disabled until one is cleared.
+            const disabled = !active && atMax && !o.exclusive;
             return (
-              <label key={o.value} className={cn(optionBase, active ? optionActive : optionIdle, "cursor-pointer")}>
-                <input
-                  type="checkbox"
-                  name={`${name}[]`}
-                  value={o.value}
-                  checked={active}
-                  onChange={() => save(active ? selected.filter((v) => v !== o.value) : [...selected, o.value])}
-                  className="sr-only"
-                />
+              <label
+                key={o.value}
+                className={cn(optionBase, active ? optionActive : optionIdle, o.exclusive && "mt-1", disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer")}
+              >
+                <input type="checkbox" name={`${name}[]`} value={o.value} checked={active} disabled={disabled} onChange={() => toggle(o, active)} className="sr-only" />
                 <span aria-hidden="true" className={cn("inline-flex h-5 w-5 items-center justify-center rounded-[6px] border text-[12px]", active ? "border-white bg-white/20" : "border-line")}>
                   {active ? "✓" : ""}
                 </span>

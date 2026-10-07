@@ -15,7 +15,7 @@ import { formatMonth, formatScore } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-const SELECTABLE = ["ai_literacy", "agentic_work", "org_enablement", "agentic_management", "impact", "ai_usage", "verification"];
+const SELECTABLE = ["gail_total", "agentic_work", "verification_behavior", "stias_trust", "organizational_ai_enablement", "manager_experience", "ai_usage_frequency"];
 
 export default async function TrendsPage({ params, searchParams }: PageProps<"/dashboard/[projectId]/trends">) {
   const { projectId } = await params;
@@ -26,7 +26,7 @@ export default async function TrendsPage({ params, searchParams }: PageProps<"/d
   const view = data.view;
   const tr = t.dashboard.trends;
   const threshold = d.client.privacyThreshold;
-  const metricId = typeof sp.metric === "string" && SELECTABLE.includes(sp.metric) ? sp.metric : "ai_literacy";
+  const metricId = typeof sp.metric === "string" && SELECTABLE.includes(sp.metric) ? sp.metric : "gail_total";
   const metric = view?.metrics.find((m) => m.id === metricId);
   const trend = view ? await getMetricTrend(d.ctx, projectId, metricId, data.segment) : [];
   const byUnit = view && data.selected ? await getMetricBySegments(d.ctx, data.selected.id, metricId, "department") : [];
@@ -81,7 +81,7 @@ export default async function TrendsPage({ params, searchParams }: PageProps<"/d
                     ) : (
                       <>
                         <span>{u.baselineScore != null ? <><bdi dir="ltr">{formatScore(u.baselineScore, locale)}</bdi> ← </> : null}<strong>{formatScore(u.score, locale)}</strong></span>
-                        <span className="flex items-center gap-2"><Delta value={u.delta} locale={locale} /><span className="text-[11px] text-text-muted">n={u.n}</span></span>
+                        <span className="flex items-center gap-2"><Delta value={u.delta} locale={locale} neutral={metric.neutralDirection} /><span className="text-[11px] text-text-muted">n={u.n}</span></span>
                       </>
                     )}
                   </li>

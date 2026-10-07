@@ -1,3 +1,5 @@
+import { lt } from "@/domain/shared/localized";
+import { METHODOLOGY_LABELS } from "@/domain/questionnaire/methodology";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -24,9 +26,9 @@ const dotClass: Record<PillTone, string> = {
 };
 
 /** Status is always text plus a dot: never colour alone. */
-export function StatusPill({ tone = "neutral", children, className, dot = true }: { tone?: PillTone; children: ReactNode; className?: string; dot?: boolean }) {
+export function StatusPill({ tone = "neutral", children, className, dot = true, title }: { tone?: PillTone; children: ReactNode; className?: string; dot?: boolean; title?: string }) {
   return (
-    <span className={cn("inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold", toneClass[tone], className)}>
+    <span title={title} className={cn("inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold", toneClass[tone], className)}>
       {dot ? <span aria-hidden="true" className={cn("h-1.5 w-1.5 rounded-full", dotClass[tone])} /> : null}
       {children}
     </span>
@@ -35,14 +37,16 @@ export function StatusPill({ tone = "neutral", children, className, dot = true }
 
 /** Research-status badge for sections and questions (spec §10). */
 export function SourceBadge({ sourceType, researchStatus, locale }: { sourceType: "validated" | "ngg_measure" | "client_custom"; researchStatus?: "validated" | "ngg_measure" | "experimental" | "custom"; locale: "he" | "en" }) {
+  // Client-facing labels and tooltips from the Master Questionnaire Copy §21.
   const labels = {
-    he: { validated: "מתוקף", ngg_measure: "מדד NGG", experimental: "ניסיוני", client_custom: "מותאם ללקוח" },
-    en: { validated: "Validated", ngg_measure: "NGG Measure", experimental: "Experimental", client_custom: "Client Custom" },
+    he: { validated: "מבוסס על סולם מחקרי מתוקף", ngg_measure: "מדד NGG מבוסס מחקר", experimental: "מדד NGG ניסיוני", client_custom: "שאלה מותאמת ללקוח" },
+    en: { validated: "Based on a validated research scale", ngg_measure: "NGG research-informed measure", experimental: "Experimental NGG measure", client_custom: "Client custom question" },
   } as const;
   const key = researchStatus === "experimental" ? "experimental" : sourceType;
   const tone: PillTone = key === "validated" ? "info" : key === "ngg_measure" ? "accent" : key === "experimental" ? "warning" : "neutral";
+  const tooltip = lt(METHODOLOGY_LABELS[sourceType].tooltip, locale);
   return (
-    <StatusPill tone={tone} dot={false}>
+    <StatusPill tone={tone} dot={false} title={tooltip}>
       {key === "validated" ? <LockIcon /> : null}
       {labels[locale][key]}
     </StatusPill>

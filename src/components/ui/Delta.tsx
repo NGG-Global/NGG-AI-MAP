@@ -11,6 +11,8 @@ export interface DeltaProps {
   suffix?: string;
   /** For metrics where a decrease is desirable (e.g. barriers). */
   invert?: boolean;
+  /** For metrics with no "better" direction (e.g. trust in AI): direction is shown without good/bad colour. */
+  neutral?: boolean;
   className?: string;
   size?: "sm" | "md";
   notComparable?: boolean;
@@ -20,7 +22,7 @@ export interface DeltaProps {
  * Direction is always carried by an arrow glyph *and* text, never by colour alone (spec §23.3).
  * Negative numbers are isolated with <bdi dir="ltr"> so RTL text does not flip the sign.
  */
-export function Delta({ value, locale, threshold = 0.15, digits = 1, suffix, invert = false, className, size = "md", notComparable }: DeltaProps) {
+export function Delta({ value, locale, threshold = 0.15, digits = 1, suffix, invert = false, neutral = false, className, size = "md", notComparable }: DeltaProps) {
   const labels = locale === "he"
     ? { none: "ללא שינוי מהותי", na: "לא בר השוואה", up: "עלייה", down: "ירידה" }
     : { none: "No material change", na: "Not comparable", up: "Up", down: "Down" };
@@ -41,7 +43,7 @@ export function Delta({ value, locale, threshold = 0.15, digits = 1, suffix, inv
   const arrow = value > 0 ? "↑" : "↓";
   return (
     <span
-      className={cn("inline-flex items-center gap-1 font-semibold", positive ? "text-success" : "text-danger", sizeClass, className)}
+      className={cn("inline-flex items-center gap-1 font-semibold", neutral ? "text-ink" : positive ? "text-success" : "text-danger", sizeClass, className)}
       aria-label={`${value > 0 ? labels.up : labels.down} ${formatDelta(value, locale, digits)}`}
     >
       <span aria-hidden="true">{arrow}</span>

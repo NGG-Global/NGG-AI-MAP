@@ -47,3 +47,35 @@ Decisions made during implementation:
   edits the paragraph before publishing.
 - **Goal baselines are captured from the latest closed wave at creation time** and compared with the
   latest closed wave afterwards, so a goal created between T0 and T1 shows its delta once T1 closes.
+
+Master Questionnaire Copy v1.0 (`docs/questionnaire/NGG_AI_Assessment_Master_Questionnaire_Copy_v1.0.md`):
+
+- **The copy is the canonical V1 library.** Section and question IDs, Hebrew wording, scales, N/A
+  options and routing come from it verbatim; every library question records `copyVersion`
+  (`questionnaire-copy-he-1.0`). English for GAIL and S-TIAS is the published source wording; English
+  for NGG items is a working translation that NGG has not yet approved.
+- **GAIL (17 items) and S-TIAS (3 items) are locked, 1–7, and labelled as NGG Hebrew adaptations.**
+  The UI never calls the Hebrew versions "validated in Hebrew". Dimension scores require every item of
+  the dimension (`minAnsweredRatio: 1`).
+- **"Not relevant" / "Don't know" / "Hard to assess" are stored as `na` (or as an option without a
+  score) and never enter a mean.** The copy defines no "prefer not to answer", so library items do not
+  offer it; client custom questions still may.
+- **S-TIAS pipes the respondent's main tool** (USE_03, or the single named tool in USE_02). When no
+  named product is known, the copy's fallback wording is shown.
+- **Trust has no "better" direction.** `stias_trust` and `ai_nonuser_share` carry `neutralDirection`;
+  their deltas are shown without good/bad colour and they are excluded from "improved" counts and from
+  strongest/weakest rankings.
+- **The agentic-work funnel is a share at or above "often" (≥4) per dimension** (`threshold_share`),
+  not a maturity ladder. Agentic management has four dimensions and no aggregate score.
+- **Manager–team gaps use only the five pairs in copy §19.** The team side is everyone who rated their
+  own direct manager (including managers who have a manager); MEXP_05 has no mirror and is not paired.
+- **Answers that become hidden are discarded.** If a respondent changes an earlier answer (e.g. USE_01
+  to "none", or CTX_03 to "no"), stored answers to questions they can no longer see are deleted so they
+  never reach scoring. A piped answer (USE_03) is discarded when its source answer no longer contains it.
+- **The database library follows the deployed code.** On start-up the app compares a content hash in
+  `app_meta` with the bundled library and, when it differs, upserts the library and removes rows from
+  earlier editions. Existing questionnaire versions are self-contained, so drafts, locked versions and
+  results are unaffected; questionnaires built from an earlier library keep their old wording until
+  they are rebuilt.
+- **Copy §24 (pilot checklist) is outside the software**: back-translation, expert review, cognitive
+  interviews and reliability checks remain with NGG before the first external client.

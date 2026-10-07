@@ -243,15 +243,20 @@ export const invitations = pgTable(
 
 export const sectionTemplates = pgTable("section_templates", {
   id: text("id").primaryKey(),
-  /** Stable key used in questionnaire definitions, e.g. `ai_literacy`. */
+  /** Stable key used in questionnaire definitions, e.g. `SECTION_GAIL_17`. */
   key: text("key").notNull().unique(),
   version: text("version").notNull().default("1.0"),
   category: sectionCategoryEnum("category").notNull(),
   name: jsonb("name").$type<LocalizedText>().notNull(),
   description: jsonb("description").$type<LocalizedText>().notNull(),
+  /** Respondent-facing introduction (may contain piped values) and its unpiped fallback. */
+  intro: jsonb("intro").$type<LocalizedText>(),
+  fallbackIntro: jsonb("fallback_intro").$type<LocalizedText>(),
   sourceType: sourceTypeEnum("source_type").notNull(),
   researchStatus: researchStatusEnum("research_status").notNull(),
   audience: audienceEnum("audience").notNull().default("all"),
+  /** False for optional sections (open text, delegation map). */
+  required: boolean("required").notNull().default(true),
   recommendedCore: boolean("recommended_core").notNull().default(false),
   longitudinalCore: boolean("longitudinal_core").notNull().default(false),
   mandatory: boolean("mandatory").notNull().default(false),
@@ -265,7 +270,7 @@ export const questionTemplates = pgTable(
   "question_templates",
   {
     id: text("id").primaryKey(),
-    /** Stable identifier preserved across versions, e.g. `ai_lit_prompting_01`. */
+    /** Stable identifier preserved across versions, e.g. `GAIL_PE_01`. */
     canonicalId: text("canonical_id").notNull().unique(),
     sectionKey: text("section_key")
       .notNull()
@@ -290,6 +295,13 @@ export const metricDefinitions = pgTable("metric_definitions", {
   config: jsonb("config").$type<MetricConfig>().notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
   ...timestamps,
+});
+
+/** Small key/value store for platform state, e.g. the content hash of the loaded library. */
+export const appMeta = pgTable("app_meta", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /* -------------------------------------------------------- questionnaires */

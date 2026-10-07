@@ -13,13 +13,26 @@ export interface QuestionTemplateContent {
   allowPreferNotToAnswer?: boolean;
   wordingStatus?: "final" | "placeholder" | "illustrative";
   segmentKey?: "department" | "role_family" | "is_manager" | "seniority" | "location";
+  /** Options come from the client's taxonomy; `options` are the default when the client has none. */
   optionsFrom?: "departments" | "roleFamilies" | "seniorityGroups" | "locations";
+  /** Appended after taxonomy-derived options (e.g. "Other / not listed"). */
+  extraOptions?: ChoiceOption[];
+  naOption?: LocalizedText;
+  maxSelections?: number;
+  optionsFromAnswer?: string;
+  fallbackText?: LocalizedText;
+  translationStatus?: "source_language" | "ngg_hebrew_adaptation";
+  sourceCitation?: string;
+  longitudinalCore?: boolean;
+  /** Copy release the wording comes from, e.g. `questionnaire-copy-he-1.0`. */
+  copyVersion?: string;
 }
 
+/** Default labels for client custom scale questions, aligned with the Master Questionnaire Copy. */
 export const LIKERT_5_LABELS: LocalizedText[] = [
-  { he: "בכלל לא מסכים/ה", en: "Strongly disagree" },
+  { he: "כלל לא מסכים/ה", en: "Strongly disagree" },
   { he: "לא מסכים/ה", en: "Disagree" },
-  { he: "במידה מסוימת", en: "Somewhat agree" },
+  { he: "לא מסכים/ה ולא לא מסכים/ה", en: "Neither agree nor disagree" },
   { he: "מסכים/ה", en: "Agree" },
   { he: "מסכים/ה מאוד", en: "Strongly agree" },
 ];
@@ -40,7 +53,7 @@ export const SECONDS_PER_QUESTION: Record<string, number> = {
   multi_select: 15,
   likert_5: 8,
   likert_7: 9,
-  matrix: 25,
+  matrix: 60,
   numeric: 10,
   short_text: 25,
   long_text: 60,

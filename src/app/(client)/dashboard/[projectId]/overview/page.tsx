@@ -6,9 +6,8 @@ import { KpiCard } from "@/components/client/KpiCard";
 import { Tile, TileTitle } from "@/components/ui/Tile";
 import { Notice } from "@/components/ui/Notice";
 import { InsightBadge, InsightView } from "@/components/insights/InsightView";
-import { DistributionBars } from "@/components/results/DistributionBars";
+import { MetricBars } from "@/components/results/MetricBars";
 import { GapTable } from "@/components/results/GapTable";
-import { findQuestion } from "@/domain/questionnaire/definition";
 import { fmt } from "@/lib/i18n";
 import type { ExecutiveSummary } from "@/domain/ai/contracts";
 
@@ -28,7 +27,8 @@ export default async function ClientOverviewPage({ params, searchParams }: PageP
   const active = data.goals.filter((g) => g.goal.status === "active" || g.goal.status === "in_progress" || g.goal.status === "review");
   const onTrack = active.filter((g) => g.goal.actions.length === 0 || g.goal.actions.some((a) => a.done)).length;
   const coreRows = core.map((m) => view?.compared.find((c) => c.metricId === m.id)).filter((r): r is NonNullable<typeof r> => Boolean(r) && !r!.current.suppressed);
-  const improved = coreRows.filter((r) => r.delta != null && r.delta >= 0.15).length;
+  // "Improved" counts only metrics with a desirable direction; trust is read in context, not as better/worse.
+  const improved = coreRows.filter((r) => r.delta != null && r.delta >= 0.15 && !core.find((m) => m.id === r.metricId)?.neutralDirection).length;
   const headline = view?.baseline
     ? fmt(t.dashboard.headlineImproved, { n: improved, total: coreRows.length, wave: view.baseline.code })
     : view
@@ -61,7 +61,7 @@ export default async function ClientOverviewPage({ params, searchParams }: PageP
           <div className="flex flex-wrap gap-4">
             <Tile className="flex-[1_1_320px]">
               <TileTitle trailing={<span className="text-[12px] text-text-muted">{t.dashboard.adoption.funnelHelp}</span>}>{t.dashboard.adoption.funnel}</TileTitle>
-              <DistributionBars distribution={view.distributions.find((x) => x.itemCanonicalId === "work_patterns")} question={data.definition ? findQuestion(data.definition, "work_patterns") : undefined} locale={locale} threshold={threshold} emphasize baseline={view.baselineDistributions.find((x) => x.itemCanonicalId === "work_patterns") ?? null} />
+              <MetricBars metrics={view.metrics.filter((m) => m.group === "adoption_funnel")} compared={view.compared} locale={locale} t={t} baselineCode={view.baseline?.code} currentCode={data.selected?.code} threshold={threshold} partial={data.partial} showN={false} />
             </Tile>
             <Tile className="flex-[1_1_360px]">
               <TileTitle trailing={<Link href={data.href("management")} className="text-[12px] font-semibold">{t.client.nav.management} ←</Link>}>{t.dashboard.management.gap}</TileTitle>

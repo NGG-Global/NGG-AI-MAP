@@ -4,7 +4,7 @@ import { formatScore } from "@/lib/format";
 import { lt } from "@/domain/shared/localized";
 import { fmt, type Dictionary } from "@/lib/i18n";
 import type { ComparedMetric } from "@/domain/measurement/engine";
-import type { MetricConfig } from "@/domain/measurement/config";
+import { isPercentMetric, type MetricConfig } from "@/domain/measurement/config";
 import type { Locale } from "@/domain/shared/enums";
 
 export interface MetricBarsProps {
@@ -66,10 +66,10 @@ export function MetricBars({ metrics, compared, locale, t, baselineCode, current
                   </div>
                   <span className="text-[16px] font-extrabold">
                     {formatScore(cur.score, locale)}
-                    {metric.kind === "share" ? "%" : ""}
+                    {isPercentMetric(metric) ? "%" : ""}
                   </span>
                   <div className="flex flex-col">
-                    <Delta value={row.delta} locale={locale} notComparable={Boolean(row.baseline) && !row.comparable} suffix={metric.kind === "share" ? "%" : undefined} />
+                    <Delta value={row.delta} locale={locale} notComparable={Boolean(row.baseline) && !row.comparable} suffix={isPercentMetric(metric) ? "%" : undefined} threshold={isPercentMetric(metric) ? 1 : undefined} neutral={metric.neutralDirection} />
                     {partialInfo && partialInfo.shared < partialInfo.total ? <span className="text-[10px] text-warning-text">{fmt(t.results.comparabilityNote, partialInfo)}</span> : null}
                   </div>
                 </>

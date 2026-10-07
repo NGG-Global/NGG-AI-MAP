@@ -1,5 +1,6 @@
 import { routeQuestionnaire, type RoutingContext } from "@/domain/questionnaire/logic";
 import { lt } from "@/domain/shared/localized";
+import { previewText } from "@/domain/questionnaire/piping";
 import { StatusPill } from "@/components/ui/StatusPill";
 import type { QuestionnaireDefinition, QuestionDefinition } from "@/domain/questionnaire/definition";
 import type { Locale } from "@/domain/shared/enums";
@@ -17,8 +18,8 @@ export function QuestionnairePreview({ definition, persona, locale }: { definiti
     <div className="flex flex-col gap-4">
       <header className="rounded-[28px] bg-surface p-6">
         <h1 className="text-[26px] font-extrabold">{lt(definition.title, locale)}</h1>
-        {definition.intro ? <p className="mt-2 text-[14px] text-text-muted">{lt(definition.intro, locale)}</p> : null}
-        {definition.privacyNote ? <p className="mt-2 text-[12px] text-text-muted">{lt(definition.privacyNote, locale)}</p> : null}
+        {definition.intro ? <p className="mt-2 whitespace-pre-line text-[14px] text-text-muted">{previewText(definition.intro, locale)}</p> : null}
+        {definition.privacyNote ? <p className="mt-2 whitespace-pre-line text-[12px] text-text-muted">{previewText(definition.privacyNote, locale)}</p> : null}
       </header>
       {routed.map(({ section, questions }, index) => (
         <section key={section.id} className="rounded-[28px] bg-surface p-6">
@@ -26,7 +27,7 @@ export function QuestionnairePreview({ definition, persona, locale }: { definiti
             {index + 1} / {routed.length}
           </p>
           <h2 className="text-[20px] font-bold">{lt(section.displayTitle ?? section.title, locale)}</h2>
-          <p className="mt-1 text-[13px] text-text-muted">{lt(section.clientNote ?? section.description, locale)}</p>
+          <p className="mt-1 whitespace-pre-line text-[13px] text-text-muted">{section.clientNote ? lt(section.clientNote, locale) : previewText(section.intro ?? section.description, locale)}</p>
           <ol className="mt-4 flex flex-col gap-3">
             {questions.map((q, qi) => (
               <li key={q.id} className="rounded-[16px] bg-sunken px-4 py-3">
@@ -34,17 +35,20 @@ export function QuestionnairePreview({ definition, persona, locale }: { definiti
                   <span className="me-2 text-text-muted" dir="ltr">
                     {qi + 1}.
                   </span>
-                  {lt(q.text, locale)}
+                  {previewText(q.text, locale)}
                   {q.required ? <span className="ms-1 text-accent-text">*</span> : null}
                 </p>
                 {q.helpText ? <p className="mt-1 text-[12px] text-text-muted">{lt(q.helpText, locale)}</p> : null}
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {q.scale ? (
-                    scaleLabels(q).map((label, i) => (
-                      <StatusPill key={i} tone="neutral" dot={false}>
-                        <bdi dir="ltr">{i + (q.scale?.min ?? 1)}</bdi> {lt(label, locale)}
-                      </StatusPill>
-                    ))
+                    <>
+                      {scaleLabels(q).map((label, i) => (
+                        <StatusPill key={i} tone="neutral" dot={false}>
+                          <bdi dir="ltr">{i + (q.scale?.min ?? 1)}</bdi> {lt(label, locale)}
+                        </StatusPill>
+                      ))}
+                      {q.naOption ? <StatusPill tone="neutral" dot={false} className="border border-dashed border-line-dashed bg-transparent">{lt(q.naOption, locale)}</StatusPill> : null}
+                    </>
                   ) : q.options ? (
                     q.options.map((o) => (
                       <StatusPill key={o.value} tone="neutral" dot={false}>

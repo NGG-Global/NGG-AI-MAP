@@ -4,7 +4,7 @@ import { formatScore } from "@/lib/format";
 import { lt } from "@/domain/shared/localized";
 import { fmt, type Dictionary } from "@/lib/i18n";
 import type { ComparedMetric } from "@/domain/measurement/engine";
-import type { MetricConfig } from "@/domain/measurement/config";
+import { isPercentMetric, type MetricConfig } from "@/domain/measurement/config";
 import type { Locale } from "@/domain/shared/enums";
 
 /** "3.8 / 5 · ↑ 0.4 from baseline" — the spec's core KPI card (§23.3). */
@@ -20,12 +20,12 @@ export function KpiCard({ metric, row, locale, t, baselineCode, threshold, accen
         <div>
           <p className="flex items-baseline gap-1">
             <span className="text-[36px] font-black leading-none">{formatScore(cur.score, locale)}</span>
-            <span className={`text-[13px] ${accent ? "text-white/80" : "text-text-muted"}`}>/ {metric.scaleMax}</span>
+            <span className={`text-[13px] ${accent ? "text-white/80" : "text-text-muted"}`}>{isPercentMetric(metric) ? "%" : `/ ${metric.scaleMax}`}</span>
           </p>
           <p className={`mt-1 flex items-center gap-2 text-[12px] ${accent ? "text-white/90" : "text-text-muted"}`}>
             {row.baseline && row.comparable ? (
               <>
-                <Delta value={row.delta} locale={locale} notComparable={!row.comparable} className={accent ? "!text-white" : ""} />
+                <Delta value={row.delta} locale={locale} notComparable={!row.comparable} neutral={metric.neutralDirection} suffix={isPercentMetric(metric) ? "%" : undefined} threshold={isPercentMetric(metric) ? 1 : undefined} className={accent ? "!text-white" : ""} />
                 <span>{fmt(t.dashboard.fromBaseline, { wave: baselineCode ?? "" })}</span>
                 <span>· {fmt(t.dashboard.was, { score: formatScore(row.baseline.score, locale) })}</span>
               </>

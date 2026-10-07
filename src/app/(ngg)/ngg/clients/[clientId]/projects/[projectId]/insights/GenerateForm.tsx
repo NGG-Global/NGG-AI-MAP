@@ -28,7 +28,7 @@ export function GenerateForm({ t, locale, clientId, projectId, waves, metrics }:
         </Select>
       </Field>
       <Field label={i.forMetric} htmlFor="gMetric">
-        <Select id="gMetric" name="metricId" defaultValue="ai_literacy">
+        <Select id="gMetric" name="metricId" defaultValue="gail_total">
           {metrics.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
         </Select>
       </Field>

@@ -5,10 +5,10 @@ import { seedLibrary } from "@/server/seed/library";
 import type { Db } from "@/server/db/connection";
 import { createBaselineQuestionnaire } from "@/server/services/questionnaires";
 import { createWave, publishWave, closeWave } from "@/server/services/waves";
-import { completeRespondent, resolveSurvey, saveAnswers, startPublicRespondent, computeProgress, loadAnswers } from "@/server/services/survey";
+import { answerEverything } from "./helpers/survey";
 import { generateInsight, listProjectInsights, reviewInsight, updateInsightPayload, buildPayloadForWave } from "@/server/services/insights";
 import { adoptGoalSuggestions, approveGoal, createGoal, listGoals, publishGoalToClient, setGoalStatus, canTransition, goalMeasurement } from "@/server/services/goals";
-import { clients, respondents } from "@/server/db/schema";
+import { clients } from "@/server/db/schema";
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "@/server/shared/errors";
 import { MockAIProvider } from "@/server/ai/mock";
 import { buildAnalyticalPayload, redactPii } from "@/domain/ai/payload";
@@ -17,32 +17,6 @@ import type { ExecutiveSummary } from "@/domain/ai/contracts";
 let db: Db;
 let world: World;
 let waveId: string;
-
-async function answerEverything(publicToken: string, profile: { department: string; isManager: boolean; usage: string; likert: number }) {
-  const start = await resolveSurvey(db, publicToken);
-  if (!("access" in start) || start.access.kind !== "public") throw new Error("public");
-  const { token } = await startPublicRespondent(db, start.access);
-  const resolved = await resolveSurvey(db, publicToken, token);
-  if (!("access" in resolved) || resolved.access.kind !== "respondent") throw new Error("respondent");
-  let access = resolved.access;
-  await saveAnswers(db, access, { ctx_department: profile.department, ctx_role_family: "Pro", ctx_is_manager: profile.isManager ? "yes" : "no", ctx_seniority: "<2y", ctx_ai_use_30d: profile.usage });
-  const [resp] = await db.select().from(respondents).where(eq(respondents.id, access.respondent.id));
-  access = { ...access, respondent: resp! };
-  const answers = await loadAnswers(db, resp!.id);
-  const payload: Record<string, unknown> = {};
-  for (const entry of computeProgress(access.definition, resp!, answers).routed) {
-    for (const q of entry.questions) {
-      if (q.canonicalId in answers) continue;
-      if (q.type === "likert_5") payload[q.canonicalId] = profile.isManager && q.canonicalId.startsWith("mg_") ? 5 : profile.likert;
-      else if (q.type === "single_choice") payload[q.canonicalId] = q.options?.[0]?.value;
-      else if (q.type === "multi_select") payload[q.canonicalId] = q.options?.slice(0, 2).map((o) => o.value);
-      else if (q.type === "matrix") payload[q.canonicalId] = Object.fromEntries((q.matrixRows ?? []).map((r) => [r.key, q.matrixColumns?.[1]?.value]));
-      else payload[q.canonicalId] = "אין לי מספיק הדרכה, צרו קשר dana@example.com";
-    }
-  }
-  await saveAnswers(db, access, payload);
-  await completeRespondent(db, access);
-}
 
 beforeAll(async () => {
   db = await testDb();
@@ -53,8 +27,8 @@ beforeAll(async () => {
   await createBaselineQuestionnaire(ctx, world.clientA.projectId);
   const wave = await createWave(ctx, world.clientA.projectId, { name: "T0", type: "baseline", questionnaireSource: "draft", audienceScope: "all_organization", audienceUnits: [], distributionMode: "public_link", privacyMode: "anonymous", locale: "he", invitedCount: 30 });
   const published = await publishWave(ctx, wave.id);
-  for (let i = 0; i < 9; i++) await answerEverything(published.publicToken!, { department: "Tech", isManager: false, usage: "daily", likert: 3 });
-  for (let i = 0; i < 7; i++) await answerEverything(published.publicToken!, { department: "Tech", isManager: true, usage: "weekly", likert: 4 });
+  for (let i = 0; i < 9; i++) await answerEverything(db, published.publicToken!, { department: "Tech", isManager: false, usage: "almost_daily", likert: 3, text: "אין לי מספיק הדרכה, צרו קשר dana@example.com" });
+  for (let i = 0; i < 7; i++) await answerEverything(db, published.publicToken!, { department: "Tech", isManager: true, usage: "days_1_2", likert: 4, managerLikert: 5, text: "אין לי מספיק הדרכה, צרו קשר dana@example.com" });
   await closeWave(ctx, wave.id);
   waveId = wave.id;
 }, 120_000);
@@ -94,7 +68,7 @@ describe("AI layer", () => {
 
   it("rejects hallucinated metric ids and flags causal language on edit", async () => {
     const ctx = ctxFor(db, world.pmA);
-    const insight = await generateInsight(ctx, waveId, "explain_change", { metricId: "ai_literacy" });
+    const insight = await generateInsight(ctx, waveId, "explain_change", { metricId: "gail_total" });
     const edited = await updateInsightPayload(ctx, insight.id, { ...(insight.payload as object), whatChanged: "The workshop caused the rise", relatedChanges: [{ metricId: "made_up_metric", text: "x" }] });
     expect(edited.validationWarnings).toContain("causal_language");
     expect((edited.payload as { relatedChanges: unknown[] }).relatedChanges).toEqual([]);
@@ -109,11 +83,11 @@ describe("AI layer", () => {
 describe("goals", () => {
   it("enforces the state machine and approval before activation", async () => {
     const ctx = ctxFor(db, world.pmA);
-    const goal = await createGoal(ctx, world.clientA.projectId, { title: "Redesign one recurring workflow", relatedMetricIds: ["agentic_manage_systems", "verification"], targetDirection: "increase", actions: ["Document workflow", "Define review point"], successEvidence: ["Workflow documented"], scope: "management" });
+    const goal = await createGoal(ctx, world.clientA.projectId, { title: "Redesign one recurring workflow", relatedMetricIds: ["agentic_manage_systems", "verification_behavior"], targetDirection: "increase", actions: ["Document workflow", "Define review point"], successEvidence: ["Workflow documented"], scope: "management" });
     expect(goal.status).toBe("draft");
     expect(goal.source).toBe("human");
-    expect(goal.baseline.find((b) => b.metricId === "verification")!.score).not.toBeNull();
-    expect(goal.baseline.find((b) => b.metricId === "verification")!.waveCode).toBe("T0");
+    expect(goal.baseline.find((b) => b.metricId === "verification_behavior")!.score).not.toBeNull();
+    expect(goal.baseline.find((b) => b.metricId === "verification_behavior")!.waveCode).toBe("T0");
     await expect(setGoalStatus(ctx, goal.id, "active")).rejects.toBeInstanceOf(ConflictError);
     await expect(setGoalStatus(ctx, goal.id, "completed")).rejects.toBeInstanceOf(ConflictError);
     expect(canTransition("review", "completed")).toBe(true);

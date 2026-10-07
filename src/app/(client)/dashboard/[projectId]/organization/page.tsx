@@ -6,6 +6,7 @@ import { Tile, TileTitle } from "@/components/ui/Tile";
 import { Delta } from "@/components/ui/Delta";
 import { PrivacyProtected } from "@/components/ui/PrivacyProtected";
 import { DistributionBars } from "@/components/results/DistributionBars";
+import { MetricBars } from "@/components/results/MetricBars";
 import { findQuestion } from "@/domain/questionnaire/definition";
 import { lt } from "@/domain/shared/localized";
 import { formatScore } from "@/lib/format";
@@ -57,11 +58,21 @@ export default async function OrganizationPage({ params, searchParams }: PagePro
           <div className="flex flex-wrap gap-4">
             <Tile className="flex-[1_1_360px]">
               <TileTitle>{o.barriers}</TileTitle>
-              <DistributionBars distribution={view.distributions.find((x) => x.itemCanonicalId === "barriers_main")} question={q("barriers_main")} locale={locale} threshold={threshold} order="desc" baseline={view.baselineDistributions.find((x) => x.itemCanonicalId === "barriers_main") ?? null} />
+              <DistributionBars distribution={view.distributions.find((x) => x.itemCanonicalId === "BARRIER_01")} question={q("BARRIER_01")} locale={locale} threshold={threshold} order="desc" baseline={view.baselineDistributions.find((x) => x.itemCanonicalId === "BARRIER_01") ?? null} />
             </Tile>
             <Tile className="flex-[1_1_360px]">
-              <TileTitle>{o.opportunities}</TileTitle>
-              <DistributionBars distribution={view.distributions.find((x) => x.itemCanonicalId === "opp_areas")} question={q("opp_areas")} locale={locale} threshold={threshold} order="desc" />
+              <TileTitle>{o.needs}</TileTitle>
+              <DistributionBars distribution={view.distributions.find((x) => x.itemCanonicalId === "ENABLEMENT_NEED_01")} question={q("ENABLEMENT_NEED_01")} locale={locale} threshold={threshold} order="desc" baseline={view.baselineDistributions.find((x) => x.itemCanonicalId === "ENABLEMENT_NEED_01") ?? null} />
+            </Tile>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <Tile className="flex-[1_1_360px]">
+              <TileTitle trailing={<span className="text-[12px] text-text-muted">{o.trustHelp}</span>}>{o.trust}</TileTitle>
+              <MetricBars metrics={view.metrics.filter((m) => m.id === "stias_trust" || m.id === "verification_behavior")} compared={view.compared} locale={locale} t={t} baselineCode={view.baseline?.code} currentCode={data.selected?.code} threshold={threshold} partial={data.partial} />
+            </Tile>
+            <Tile className="flex-[1_1_360px]">
+              <TileTitle>{o.impact}</TileTitle>
+              <MetricBars metrics={view.metrics.filter((m) => m.group === "impact")} compared={view.compared} locale={locale} t={t} baselineCode={view.baseline?.code} currentCode={data.selected?.code} threshold={threshold} partial={data.partial} />
             </Tile>
           </div>
         </>

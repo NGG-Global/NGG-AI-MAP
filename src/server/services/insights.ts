@@ -23,11 +23,11 @@ const MAX_OPEN_TEXT_SAMPLES = 60;
 export async function buildPayloadForWave(ctx: ServiceContext, waveId: string, options: { includeOpenText?: boolean } = {}): Promise<AnalyticalPayload> {
   const view = await getWaveResults(ctx, waveId);
   const { project } = await requireProject(ctx, view.wave.projectId, "insight.generate");
-  const barriersDist = view.distributions.find((d) => d.itemCanonicalId === "barriers_main");
+  const barriersDist = view.distributions.find((d) => d.itemCanonicalId === "BARRIER_01");
   let barriers: Array<{ label: string; share: number }> = [];
   if (barriersDist && !barriersDist.suppressed && view.wave.questionnaireVersionId) {
     const [version] = await ctx.db.select().from(questionnaireVersions).where(eq(questionnaireVersions.id, view.wave.questionnaireVersionId)).limit(1);
-    const q = version ? findQuestion(version.definition, "barriers_main") : undefined;
+    const q = version ? findQuestion(version.definition, "BARRIER_01") : undefined;
     barriers = Object.entries(barriersDist.buckets).map(([value, share]) => ({ label: lt(q?.options?.find((o) => o.value === value)?.label, view.client.locale) || value, share }));
   }
   let openTextSamples: string[] = [];
@@ -38,7 +38,7 @@ export async function buildPayloadForWave(ctx: ServiceContext, waveId: string, o
       .select({ value: responses.value })
       .from(responses)
       .innerJoin(respondents, eq(respondents.id, responses.respondentId))
-      .where(and(eq(responses.waveId, waveId), inArray(responses.questionCanonicalId, ["open_helped", "open_change"]), eq(respondents.status, "completed")));
+      .where(and(eq(responses.waveId, waveId), inArray(responses.questionCanonicalId, ["OPEN_01", "OPEN_02"]), eq(respondents.status, "completed")));
     openTextSamples = rows.map((r) => (typeof r.value === "string" ? r.value.trim() : "")).filter((s) => s.length > 3).slice(0, MAX_OPEN_TEXT_SAMPLES);
   }
   return buildAnalyticalPayload({

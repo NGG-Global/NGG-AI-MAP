@@ -1,6 +1,8 @@
 # Working in this repository
 
 - Product source of truth: `docs/NGG_AI_Assessment_Interface_Spec.md`. Architecture: `docs/ARCHITECTURE.md`.
+  Questionnaire wording, scales, routing and scoring: `docs/questionnaire/NGG_AI_Assessment_Master_Questionnaire_Copy_v1.0.md`
+  (implemented in `src/domain/questionnaire/libraryContent.ts`; never change respondent-facing wording without it).
   Open decisions: `docs/DECISIONS.md`. Visual reference: `design/` (mockups, not production code).
 - Stack: Next.js 16 App Router, React 19, strict TypeScript, Tailwind v4 (tokens in `src/app/globals.css`),
   Drizzle ORM on PostgreSQL (PGlite locally), Zod, Vitest.

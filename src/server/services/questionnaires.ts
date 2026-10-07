@@ -21,7 +21,7 @@ import {
 } from "@/domain/questionnaire/definition";
 import { assertEditable, createCustomCopy, LockedItemError, nextVersionLabel } from "@/domain/questionnaire/logic";
 import { AUDIENCES, QUESTION_TYPES } from "@/domain/shared/enums";
-import { BASELINE_TEMPLATE_SECTION_KEYS } from "@/domain/questionnaire/libraryContent";
+import { BASELINE_TEMPLATE_SECTION_KEYS, COPY_VERSION, SURVEY_COPY } from "@/domain/questionnaire/libraryContent";
 import { LIKERT_5_LABELS, LIKERT_7_LABELS } from "@/domain/questionnaire/library";
 import type { ServiceContext } from "./context";
 import { requireProject } from "./access";
@@ -42,8 +42,9 @@ export function questionFromTemplate(template: QuestionTemplate, taxonomy: Segme
   const content = template.content;
   let options = content.options;
   if (content.optionsFrom) {
+    // The client's taxonomy wins; the copy's default list is used when the client has not configured one.
     const values = taxonomy[TAXONOMY_LABELS[content.optionsFrom]] ?? [];
-    options = values.map((value) => ({ value, label: { he: value, en: value } }));
+    if (values.length > 0) options = [...values.map((value) => ({ value, label: { he: value, en: value } })), ...(content.extraOptions ?? [])];
   }
   return {
     id: newId(),
@@ -67,6 +68,14 @@ export function questionFromTemplate(template: QuestionTemplate, taxonomy: Segme
     wordingStatus: content.wordingStatus ?? "final",
     segmentKey: content.segmentKey,
     optionsFrom: content.optionsFrom,
+    naOption: content.naOption,
+    maxSelections: content.maxSelections,
+    optionsFromAnswer: content.optionsFromAnswer,
+    fallbackText: content.fallbackText,
+    copyVersion: content.copyVersion,
+    translationStatus: content.translationStatus,
+    sourceCitation: content.sourceCitation,
+    longitudinalCore: content.longitudinalCore,
   };
 }
 
@@ -78,12 +87,14 @@ export function sectionFromTemplate(entry: LibrarySectionWithQuestions, taxonomy
     templateVersion: section.version,
     title: section.name,
     description: section.description,
+    intro: section.intro ?? undefined,
+    fallbackIntro: section.fallbackIntro ?? undefined,
     sourceType: section.sourceType,
     researchStatus: section.researchStatus,
     audience: section.audience,
     recommendedCore: section.recommendedCore,
     longitudinalCore: section.longitudinalCore,
-    required: true,
+    required: section.required,
     allowPreferNotToAnswer: true,
     displayRules: section.displayRules,
     questions: questions
@@ -93,7 +104,8 @@ export function sectionFromTemplate(entry: LibrarySectionWithQuestions, taxonomy
   };
 }
 
-export function buildBaselineDefinition(library: LibrarySectionWithQuestions[], taxonomy: SegmentTaxonomy, title: string): QuestionnaireDefinition {
+/** The default baseline built from the library, framed by the Master Questionnaire Copy (INTRO_01–04, COMPLETE_01–02). */
+export function buildBaselineDefinition(library: LibrarySectionWithQuestions[], taxonomy: SegmentTaxonomy, title?: string): QuestionnaireDefinition {
   const byKey = new Map(library.map((e) => [e.section.key, e]));
   const sections = BASELINE_TEMPLATE_SECTION_KEYS.map((key) => byKey.get(key))
     .filter((e): e is LibrarySectionWithQuestions => Boolean(e))
@@ -101,15 +113,14 @@ export function buildBaselineDefinition(library: LibrarySectionWithQuestions[], 
     .filter((s) => s.questions.length > 0);
   return {
     schemaVersion: 1,
-    title: { he: title, en: title },
-    intro: {
-      he: "כמה דקות של כנות יעזרו לארגון להבין מה עובד, מה חסר ואיפה כדאי להשקיע.",
-      en: "A few honest minutes will help the organization understand what works, what is missing and where to invest.",
-    },
-    privacyNote: {
-      he: "התשובות לא ישמשו להערכת ביצועים. ההנהלה רואה רק נתונים מצרפיים של קבוצות גדולות מספיק.",
-      en: "Answers are never used for performance evaluation. Leadership sees only aggregate data for sufficiently large groups.",
-    },
+    title: title ? { he: title, en: title } : SURVEY_COPY.title,
+    intro: SURVEY_COPY.intro,
+    privacyNote: SURVEY_COPY.privacyNote,
+    privacyNotePseudonymous: SURVEY_COPY.privacyNotePseudonymous,
+    startLabel: SURVEY_COPY.startLabel,
+    completionTitle: SURVEY_COPY.completionTitle,
+    completionBody: SURVEY_COPY.completionBody,
+    copyVersion: COPY_VERSION,
     sections,
   };
 }
@@ -164,7 +175,8 @@ export async function createBaselineQuestionnaire(ctx: ServiceContext, projectId
   if (existing) throw new ConflictError("questionnaire_exists");
   const library = await loadLibrary(ctx.db);
   const title = name?.trim() || `${project.name} — Baseline`;
-  const definition = buildBaselineDefinition(library, client.segmentTaxonomy, title);
+  // The questionnaire name is internal; respondents see the copy's survey title.
+  const definition = buildBaselineDefinition(library, client.segmentTaxonomy);
   const questionnaireId = newId();
   await ctx.db.insert(questionnaires).values({ id: questionnaireId, projectId, name: title });
   await ctx.db.insert(questionnaireVersions).values({
@@ -441,11 +453,19 @@ export async function removeQuestion(ctx: ServiceContext, versionId: string, que
   throw new NotFoundError("question");
 }
 
-export async function updateIntro(ctx: ServiceContext, versionId: string, input: { title: { he: string; en?: string }; intro?: { he: string; en?: string }; privacyNote?: { he: string; en?: string } }) {
+/**
+ * Updates the respondent-facing frame. The privacy block is fixed copy (INTRO_03): only the
+ * organization name and duration vary, and both are filled automatically at render time.
+ */
+export async function updateIntro(
+  ctx: ServiceContext,
+  versionId: string,
+  input: { title: { he: string; en?: string }; intro?: { he: string; en?: string }; completionNote?: { he: string; en?: string } | null },
+) {
   const d = await loadDraftForEdit(ctx, versionId);
   d.definition.title = input.title;
   if (input.intro) d.definition.intro = input.intro;
-  if (input.privacyNote) d.definition.privacyNote = input.privacyNote;
+  if (input.completionNote !== undefined) d.definition.completionNote = input.completionNote?.he.trim() ? input.completionNote : undefined;
   return saveDraft(ctx, versionId, d.definition, { action: "questionnaire.intro_updated", projectId: d.projectId, clientId: d.client.id });
 }
 

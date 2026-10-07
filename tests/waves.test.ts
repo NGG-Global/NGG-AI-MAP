@@ -39,7 +39,7 @@ describe("waves", () => {
     const [version] = await db.select().from(questionnaireVersions).where(eq(questionnaireVersions.id, wave!.questionnaireVersionId!));
     expect(version!.lockedAt).not.toBeNull();
     // the frozen definition cannot be edited any more
-    const custom = version!.definition.sections.find((s) => s.key === "opportunities")!;
+    const custom = version!.definition.sections.find((s) => s.key === "SECTION_OPEN_TEXT")!;
     await expect(addCustomQuestion(ctx, version!.id, custom.id, { type: "short_text", text: { he: "x" }, required: false })).rejects.toBeInstanceOf(ConflictError);
     await expect(removeSection(ctx, version!.id, custom.id)).rejects.toBeInstanceOf(ConflictError);
     // a second concurrent wave is refused
@@ -74,12 +74,12 @@ describe("waves", () => {
 
     // flexible mode lets the PM remove a core section; comparability reflects it
     await db.update(projects).set({ researchMode: "flexible" }).where(eq(projects.id, world.clientA.projectId));
-    const verification = state.draft!.definition.sections.find((s) => s.key === "verification")!;
+    const verification = state.draft!.definition.sections.find((s) => s.key === "SECTION_VERIFICATION")!;
     await removeSection(ctx, state.draft!.id, verification.id);
     const after = await getWaveComparability(ctx, t1.id);
     expect(after!.comparability.percent).toBeLessThan(100);
-    expect(after!.comparability.affectedMetricIds).toContain("verification");
-    expect(after!.comparability.diff.removed.map((q) => q.canonicalId)).toContain("ver_01");
+    expect(after!.comparability.affectedMetricIds).toContain("verification_behavior");
+    expect(after!.comparability.diff.removed.map((q) => q.canonicalId)).toContain("VERIFY_01");
 
     // pseudonymous tokens with emails create identity mappings separate from respondents
     const tokens = await createRespondentTokens(ctx, t1.id, { emails: ["a@x.test", "b@x.test"] });

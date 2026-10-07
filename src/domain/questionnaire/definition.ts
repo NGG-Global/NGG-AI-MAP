@@ -12,12 +12,12 @@ export const localizedTextSchema = z.object({
   en: z.string().optional(),
 });
 
-export const displayRuleOperatorSchema = z.enum(["eq", "neq", "in", "not_in", "truthy", "falsy"]);
+export const displayRuleOperatorSchema = z.enum(["eq", "neq", "in", "not_in", "truthy", "falsy", "count_gt"]);
 export type DisplayRuleOperator = z.infer<typeof displayRuleOperatorSchema>;
 
 /**
  * `field` is either `attr:<segment key>` (respondent attribute, e.g. `attr:is_manager`) or
- * `q:<canonical question id>` (an earlier answer, e.g. `q:ctx_ai_use_30d`).
+ * `q:<canonical question id>` (an earlier answer, e.g. `q:USE_01`).
  */
 export const displayRuleSchema = z.object({
   field: z.string().min(1),
@@ -31,6 +31,8 @@ export const choiceOptionSchema = z.object({
   label: localizedTextSchema,
   /** Optional numeric weight used by scoring for single-choice items (e.g. usage frequency). */
   score: z.number().optional(),
+  /** Multi-select only: selecting this option clears all others, and vice versa ("no barrier"). */
+  exclusive: z.boolean().optional(),
 });
 export type ChoiceOption = z.infer<typeof choiceOptionSchema>;
 
@@ -72,6 +74,22 @@ export const questionDefinitionSchema = z.object({
   segmentKey: z.enum(["department", "role_family", "is_manager", "seniority", "location"]).optional(),
   /** Library-only hint: options are materialised from the client's segment taxonomy at build time. */
   optionsFrom: z.enum(["departments", "roleFamilies", "seniorityGroups", "locations"]).optional(),
+  /**
+   * Scale items only: an extra non-numeric answer such as "Not relevant" or "Don't know".
+   * Stored as the value `na` and always excluded from scoring.
+   */
+  naOption: localizedTextSchema.optional(),
+  /** Multi-select only: maximum number of selections ("select up to 3"). */
+  maxSelections: z.number().int().positive().optional(),
+  /** Single choice only: show only the options the respondent selected in this earlier question. */
+  optionsFromAnswer: z.string().optional(),
+  /** Used instead of `text` when a piped value such as {{primary_ai_tool}} cannot be resolved. */
+  fallbackText: localizedTextSchema.optional(),
+  /** Provenance of the wording (Master Questionnaire Copy). */
+  copyVersion: z.string().optional(),
+  translationStatus: z.enum(["source_language", "ngg_hebrew_adaptation"]).optional(),
+  sourceCitation: z.string().optional(),
+  longitudinalCore: z.boolean().optional(),
 });
 export type QuestionDefinition = z.infer<typeof questionDefinitionSchema>;
 
@@ -84,6 +102,9 @@ export const sectionDefinitionSchema = z.object({
   /** Optional respondent-facing label override (spec §11 "Change visual label"). */
   displayTitle: localizedTextSchema.optional(),
   description: localizedTextSchema,
+  /** Respondent-facing section introduction (may contain piped values). */
+  intro: localizedTextSchema.optional(),
+  fallbackIntro: localizedTextSchema.optional(),
   clientNote: localizedTextSchema.optional(),
   sourceType: z.enum(SOURCE_TYPES),
   researchStatus: z.enum(RESEARCH_STATUSES),
@@ -101,7 +122,16 @@ export const questionnaireDefinitionSchema = z.object({
   schemaVersion: z.literal(1),
   title: localizedTextSchema,
   intro: localizedTextSchema.optional(),
+  /** May contain {{org_name}} and {{minutes}}, filled at render time. */
   privacyNote: localizedTextSchema.optional(),
+  /** Appended to the privacy note for pseudonymous longitudinal waves. */
+  privacyNotePseudonymous: localizedTextSchema.optional(),
+  startLabel: localizedTextSchema.optional(),
+  completionTitle: localizedTextSchema.optional(),
+  completionBody: localizedTextSchema.optional(),
+  /** Optional project-specific line on the completion screen. */
+  completionNote: localizedTextSchema.optional(),
+  copyVersion: z.string().optional(),
   sections: z.array(sectionDefinitionSchema),
 });
 export type QuestionnaireDefinition = z.infer<typeof questionnaireDefinitionSchema>;

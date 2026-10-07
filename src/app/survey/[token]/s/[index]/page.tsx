@@ -10,6 +10,7 @@ import { lt } from "@/domain/shared/localized";
 import { fmt } from "@/lib/i18n";
 import { SECONDS_PER_QUESTION } from "@/domain/questionnaire/library";
 import { audienceMatches } from "@/domain/questionnaire/logic";
+import { pipe, resolvePrimaryTool } from "@/domain/questionnaire/piping";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,9 @@ export default async function SurveySectionPage({ params, searchParams }: PagePr
   const missing = sp.missing === "1";
   const minutes = Math.max(1, Math.round(entry.questions.reduce((s, q) => s + (SECONDS_PER_QUESTION[q.type] ?? 10), 0) / 60));
   const scale = entry.questions.find((q) => q.scale)?.scale;
+  const primaryAiTool = resolvePrimaryTool(definition, answers, locale);
+  const intro = entry.section.clientNote ? lt(entry.section.clientNote, locale) : pipe(entry.section.intro, entry.section.fallbackIntro, locale, { primaryAiTool, orgName: client.name });
+  const offersPnta = sectionQuestions.some((q) => q.allowPreferNotToAnswer);
   return (
     <SurveyFrame
       client={client}
@@ -50,12 +54,12 @@ export default async function SurveySectionPage({ params, searchParams }: PagePr
       <section className="rounded-[28px] bg-surface p-6">
         <p className="text-[12px] font-semibold text-text-muted">{fmt(t.survey.partOf, { n: index + 1, total: progress.routed.length })}</p>
         <h1 className="mt-1 text-[26px] font-black leading-tight">{lt(entry.section.displayTitle ?? entry.section.title, locale)}</h1>
-        <p className="mt-2 text-[14px] text-ink-2">{lt(entry.section.clientNote ?? entry.section.description, locale)}</p>
+        {intro ? <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-ink-2">{intro}</p> : null}
         <p className="mt-3 flex flex-wrap gap-2 text-[12px] text-text-muted">
           <span className="rounded-full bg-muted px-3 py-1">{fmt(t.survey.aboutMinutes, { n: minutes })}</span>
           {scale ? <span className="rounded-full bg-muted px-3 py-1">{fmt(t.survey.scale, { min: scale.min, max: scale.max })}</span> : null}
         </p>
-        {entry.section.allowPreferNotToAnswer ? <p className="mt-3 text-[12px] text-text-muted">{t.survey.sectionHint}</p> : null}
+        {entry.section.allowPreferNotToAnswer && offersPnta ? <p className="mt-3 text-[12px] text-text-muted">{t.survey.sectionHint}</p> : null}
       </section>
       <SectionForm
         token={token}
@@ -66,6 +70,7 @@ export default async function SurveySectionPage({ params, searchParams }: PagePr
         answers={answers}
         attributes={respondent.segmentAttributes as Record<string, string | boolean>}
         missing={missing}
+        primaryAiTool={primaryAiTool}
         t={t.survey}
         locale={locale}
       />
