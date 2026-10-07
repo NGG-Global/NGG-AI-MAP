@@ -18,14 +18,13 @@ export function ClientWorkspaceHeader({
   t,
   locale,
   managerName,
-  canManage,
 }: {
   workspace: ClientWorkspace;
   active: ClientTab;
   t: Dictionary;
   locale: Locale;
   managerName?: string | null;
-  canManage: boolean;
+  canManage?: boolean;
 }) {
   const { client, project, summary } = workspace;
   const clientBase = `/ngg/clients/${client.id}`;
@@ -60,11 +59,6 @@ export function ClientWorkspaceHeader({
               <LinkButton href={`/dashboard/${project.id}/overview?preview=1`} variant="secondary" size="sm">
                 {t.clients.viewAsClient}
               </LinkButton>
-              {canManage ? (
-                <LinkButton href={`${projectBase}/waves/new`} variant="primary" size="sm">
-                  {t.clients.createFollowUp}
-                </LinkButton>
-              ) : null}
             </>
           ) : null
         }

@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { LinkButton } from "@/components/ui/Button";
 import { StatusPill, type PillTone } from "@/components/ui/StatusPill";
 import { Notice } from "@/components/ui/Notice";
+import { NextStepCard } from "@/components/ngg/NextStepCard";
 import { formatDate, formatPercent } from "@/lib/format";
 import type { WaveStatus } from "@/domain/shared/enums";
 
@@ -30,6 +31,7 @@ export default async function WavesPage({ params }: PageProps<"/ngg/clients/[cli
   return (
     <>
       <ClientWorkspaceHeader workspace={workspace} active="waves" t={t} locale={locale} canManage={canManage} />
+      <NextStepCard step={workspace.nextStep} projectBase={`/ngg/clients/${clientId}/projects/${projectId}`} currentPage="waves" completed={workspace.summary?.currentCompleted ?? 0} canAct={canManage} t={t} locale={locale} />
       <Tile>
         <TileTitle
           trailing={
@@ -43,7 +45,14 @@ export default async function WavesPage({ params }: PageProps<"/ngg/clients/[cli
           {w.title}
         </TileTitle>
         <p className="mb-4 text-[13px] text-text-muted">{w.subtitle}</p>
-        {!qState ? <Notice tone="info">{w.needQuestionnaire}</Notice> : null}
+        {!qState ? (
+          <Notice tone="info">
+            {w.needQuestionnaire}{" "}
+            <Link href={`/ngg/clients/${clientId}/projects/${projectId}/assessment`} className="font-semibold">
+              {t.nextStep.build_questionnaire.cta} ←
+            </Link>
+          </Notice>
+        ) : null}
         {waveList.length === 0 ? (
           <EmptyState title={w.noWaves} />
         ) : (

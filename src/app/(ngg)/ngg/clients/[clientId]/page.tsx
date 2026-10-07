@@ -7,6 +7,7 @@ import { ClientWorkspaceHeader } from "@/components/ngg/ClientWorkspaceHeader";
 import { Tile, TileTitle } from "@/components/ui/Tile";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ProjectForm } from "./ProjectForm";
+import { NextStepCard } from "@/components/ngg/NextStepCard";
 
 export const dynamic = "force-dynamic";
 
@@ -22,15 +23,17 @@ export default async function ClientOverviewPage({ params }: PageProps<"/ngg/cli
   return (
     <>
       <ClientWorkspaceHeader workspace={workspace} active="overview" t={t} locale={locale} canManage={canCreate} />
+      {canCreate ? <NextStepCard step={workspace.nextStep} projectBase={null} currentPage="client" canAct t={t} locale={locale} /> : null}
       <Tile>
         <TileTitle>{t.clients.projects}</TileTitle>
-        <EmptyState title={t.clients.emptyTitle} body={t.clients.emptyBody} />
         {canCreate ? (
-          <div className="mt-6">
+          <>
             <h3 className="mb-3 text-[15px] font-bold">{t.clients.createProject}</h3>
-            <ProjectForm t={t} locale={locale} clientId={clientId} managers={managers} />
-          </div>
-        ) : null}
+            <ProjectForm t={t} locale={locale} clientId={clientId} managers={managers} defaultManagerId={ctx.user.id} />
+          </>
+        ) : (
+          <EmptyState title={t.clients.noProjects} />
+        )}
       </Tile>
     </>
   );

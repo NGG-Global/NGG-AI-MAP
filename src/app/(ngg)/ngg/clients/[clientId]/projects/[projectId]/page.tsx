@@ -6,13 +6,13 @@ import { canProject } from "@/domain/authz/policy";
 import { ClientWorkspaceHeader } from "@/components/ngg/ClientWorkspaceHeader";
 import { Tile, TileTitle, InnerRow } from "@/components/ui/Tile";
 import { Kpi } from "@/components/ui/Kpi";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { LinkButton, Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { ProjectForm } from "../../ProjectForm";
 import { assignUserAction } from "../../actions";
 import { formatDate, formatPercent } from "@/lib/format";
 import { ProjectJourney } from "@/components/ngg/ProjectJourney";
 import { ProjectResultsPreview } from "@/components/ngg/ProjectResultsPreview";
+import { NextStepCard } from "@/components/ngg/NextStepCard";
 
 export const dynamic = "force-dynamic";
 
@@ -33,11 +33,9 @@ export default async function ProjectOverviewPage({ params }: PageProps<"/ngg/cl
     <>
       <ClientWorkspaceHeader workspace={workspace} active="overview" t={t} locale={locale} managerName={manager?.name} canManage={canManage} />
 
-      {summary.waves.length === 0 ? (
-        <Tile>
-          <EmptyState title={t.clients.emptyTitle} body={t.clients.emptyBody} action={<LinkButton href={`${base}/assessment`} variant="cta">{t.clients.emptyCta}</LinkButton>} />
-        </Tile>
-      ) : (
+      <NextStepCard step={workspace.nextStep} projectBase={base} currentPage="overview" completed={summary.currentCompleted} canAct={canProject(ctx.actor, "wave.manage", { clientId, projectId })} t={t} locale={locale} />
+
+      {summary.waves.length === 0 ? null : (
         <div className="flex flex-wrap gap-4">
           <Tile tone="ink" className="flex flex-[1_1_220px] flex-col justify-between gap-4">
             <TileTitle className="mb-0">{t.projects.currentWave}</TileTitle>

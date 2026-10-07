@@ -78,7 +78,7 @@ export function WaveForm({ t, locale, clientId, projectId, type, departments, ve
         </section>
       ) : null}
       <section className="grid gap-4 md:grid-cols-2">
-        <div className="md:col-span-2"><Step n={3} title={w.step3} /></div>
+        <div className="md:col-span-2"><Step n={wave ? 2 : 3} title={w.step3} /></div>
         <Field label={w.audience} htmlFor="audienceScope">
           <Select id="audienceScope" name="audienceScope" value={scope} onChange={(e) => setScope(e.target.value as typeof scope)}>
             {(["all_organization", "selected_units", "managers_only", "employee_sample"] as const).map((s) => (
@@ -106,14 +106,14 @@ export function WaveForm({ t, locale, clientId, projectId, type, departments, ve
         </Field>
       </section>
       <section className="grid gap-4 md:grid-cols-2">
-        <div className="md:col-span-2"><Step n={4} title={w.step4} /></div>
+        <div className="md:col-span-2"><Step n={wave ? 3 : 4} title={w.step4} /></div>
         <Field label={w.distribution} htmlFor="distributionMode">
           <Select id="distributionMode" name="distributionMode" value={distribution} onChange={(e) => setDistribution(e.target.value as typeof distribution)} disabled={!editable}>
             <option value="public_link">{w.public_link}</option>
             <option value="unique_tokens">{w.unique_tokens}</option>
           </Select>
         </Field>
-        <div className="md:col-span-2"><Step n={5} title={w.step5} /></div>
+        <div className="md:col-span-2"><Step n={wave ? 4 : 5} title={w.step5} /></div>
         <Field label={w.privacy} htmlFor="privacyMode">
           <Select id="privacyMode" name="privacyMode" defaultValue={wave?.privacyMode ?? "anonymous"} disabled={!editable}>
             <option value="anonymous">{w.anonymous}</option>
@@ -123,7 +123,7 @@ export function WaveForm({ t, locale, clientId, projectId, type, departments, ve
         </Field>
       </section>
       <section className="flex flex-col gap-3">
-        <Step n={6} title={w.step6} />
+        <Step n={wave ? 5 : 6} title={w.step6} />
         <Notice tone="info">{wave ? w.draftNotice : w.publishHelp}</Notice>
         <ActionNotice state={state} locale={locale} messages={{ wave_in_progress: w.waveInProgress, baseline_exists: w.baselineExists, no_questionnaire: w.needQuestionnaire, dates: locale === "he" ? "תאריך הסיום חייב להיות אחרי תאריך ההתחלה." : "End date must be after the start date." }} />
         <div>

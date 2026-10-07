@@ -79,3 +79,7 @@ Master Questionnaire Copy v1.0 (`docs/questionnaire/NGG_AI_Assessment_Master_Que
   they are rebuilt.
 - **Copy §24 (pilot checklist) is outside the software**: back-translation, expert review, cognitive
   interviews and reliability checks remain with NGG before the first external client.
+- **One "next step" rule drives the NGG workspace.** `src/domain/projects/nextStep.ts` derives the single
+  action that moves a project forward (project → baseline questionnaire → baseline wave → publish →
+  collect → results). Every workspace screen shows the same step card, with a button when the action is
+  elsewhere and a pointer when it is on the current page, so the guidance never contradicts itself.
