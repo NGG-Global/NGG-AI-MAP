@@ -4,8 +4,8 @@ import type { Locale } from "@/domain/shared/enums";
 /** The privacy-protected state: shown as hidden, never silently removed (design §1.6, spec §28). */
 export function PrivacyProtected({ locale, compact = false, className, threshold }: { locale: Locale; compact?: boolean; className?: string; threshold?: number }) {
   const text = locale === "he"
-    ? { title: "מוסתר", body: "הפילוח מוסתר כדי להגן על האנונימיות של המשיבים.", short: "קבוצה קטנה מדי להצגה בלי לפגוע באנונימיות.", n: threshold ? `n < ${threshold}` : "" }
-    : { title: "Hidden", body: "This segment is hidden to protect respondent anonymity.", short: "Group too small to show without compromising anonymity.", n: threshold ? `n < ${threshold}` : "" };
+    ? { body: "הנתונים בקבוצה זו אינם מוצגים כדי לשמור על פרטיות המשיבים.", hint: "ניתן לבחור פילוח רחב יותר כדי להציג את התוצאות.", n: threshold ? `n < ${threshold}` : "" }
+    : { body: "Data for this group are not shown, to protect respondents' privacy.", hint: "Choose a broader segment to show the results.", n: threshold ? `n < ${threshold}` : "" };
   return (
     <div
       role="note"
@@ -19,9 +19,10 @@ export function PrivacyProtected({ locale, compact = false, className, threshold
         <rect x="5" y="11" width="14" height="10" rx="2" />
         <path d="M8 11V7a4 4 0 0 1 8 0v4" />
       </svg>
+      {/* Copy §20: primary line, plus the secondary hint where there is room. */}
       <span>
-        <strong className="me-1 font-semibold">{text.title}</strong>
-        {compact ? text.short : text.body}
+        <strong className="font-semibold">{text.body}</strong>
+        {compact ? null : <span className="block">{text.hint}</span>}
         {text.n ? <bdi dir="ltr" className="ms-2 text-[12px]">{text.n}</bdi> : null}
       </span>
     </div>

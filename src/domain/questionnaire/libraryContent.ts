@@ -1,19 +1,53 @@
 /**
- * The NGG Section Library and Measurement Library (spec §10, §21).
+ * The NGG Section, Question and Metric libraries.
  *
- * Provenance rules (design §9, spec §3.1):
- * - `validated` items are locked. Their wording here is a PLACEHOLDER and must be replaced with the
- *   original wording of the licensed source scale by NGG's methodology lead before a live wave.
- * - `ngg_measure` items are NGG's research-informed measures. Wording is marked `illustrative`
- *   until methodological approval.
- * All content is bilingual (Hebrew primary).
+ * Source of truth for all respondent-facing wording, answer scales, routing and scoring associations:
+ * docs/questionnaire/NGG_AI_Assessment_Master_Questionnaire_Copy_v1.0.md (copy version
+ * `questionnaire-copy-he-1.0`). Hebrew is canonical. English for GAIL and S-TIAS is the published
+ * source wording; English for NGG items is a working translation pending NGG approval.
+ *
+ * Question and section IDs are the IDs defined in the copy and must remain stable across waves.
  */
 import type { LocalizedText } from "@/domain/shared/localized";
 import type { Audience, QuestionType, ResearchStatus, SectionCategory, SourceType } from "@/domain/shared/enums";
-import type { DisplayRule } from "./definition";
+import type { ChoiceOption, DisplayRule, Scale } from "./definition";
 import type { QuestionTemplateContent } from "./library";
 import type { MetricConfig } from "@/domain/measurement/config";
-import { LIKERT_5_LABELS } from "./library";
+
+export const COPY_VERSION = "questionnaire-copy-he-1.0";
+
+export const SOURCE_CITATIONS = {
+  gail: "Liu, X., Zhang, L., & Wei, X. (2025). Generative Artificial Intelligence Literacy: Scale Development and Its Effect on Job Performance. Behavioral Sciences, 15(6), 811. https://doi.org/10.3390/bs15060811 (CC BY 4.0)",
+  stias: "McGrath, M. J., Lack, O., Tisch, J., & Duenser, A. (2025). Measuring trust in artificial intelligence: validation of an established scale and its short form. Frontiers in Artificial Intelligence, 8, 1582880. https://doi.org/10.3389/frai.2025.1582880 (CC BY)",
+} as const;
+
+export { METHODOLOGY_LABELS, HEBREW_ADAPTATION_NOTE } from "./methodology";
+
+/* ------------------------------------------------------ survey frame copy */
+
+export const SURVEY_COPY = {
+  title: { he: "איך AI משתלב בעבודה שלנו?", en: "How is AI part of our work?" },
+  intro: {
+    he: "השאלון נועד להבין כיצד AI משתלב כיום בעבודה שלך ובסביבת העבודה בארגון, מה כבר עובד היטב, היכן קיימים חסמים ואילו הזדמנויות עדיין לא ממומשות.\n\nאין תשובות נכונות או לא נכונות. אנחנו מעוניינים בתמונה אמיתית של המצב כיום — גם אם אינך משתמש/ת ב-AI כלל או שהשימוש שלך עדיין מצומצם.\n\nכאשר אנחנו כותבים AI, הכוונה היא לכלים מבוססי בינה מלאכותית גנרטיבית, כגון ChatGPT, Claude, Gemini, Microsoft Copilot וכלים ארגוניים דומים, וכן לכלים או סוכנים שמסוגלים לבצע מספר שלבים כחלק ממשימה.",
+    en: "This questionnaire aims to understand how AI is part of your work and of the work environment in the organization today, what already works well, where there are barriers and which opportunities are not yet realised.\n\nThere are no right or wrong answers. We want a true picture of the current situation — even if you do not use AI at all or your use is still limited.\n\nWhen we write AI, we mean tools based on generative artificial intelligence, such as ChatGPT, Claude, Gemini, Microsoft Copilot and similar organizational tools, as well as tools or agents that can carry out several steps as part of a task.",
+  },
+  privacyNote: {
+    he: "התשובות שלך ישמשו לניתוח ארגוני ולשיפור תהליכי ההטמעה של AI ב-{{org_name}}. התוצאות יוצגו להנהלה באופן מצרפי בלבד, ולא יוצגו תשובות אישיות מזוהות.\n\nקבוצות קטנות מדי לא יוצגו בנפרד, כדי לשמור על פרטיות המשיבים.\n\nמילוי השאלון אורך כ-{{minutes}} דקות.",
+    en: "Your answers will be used for organizational analysis and to improve how AI is adopted at {{org_name}}. Results are shown to leadership in aggregate only; individual identifiable answers are never shown.\n\nGroups that are too small are not shown separately, to protect respondents' privacy.\n\nCompleting the questionnaire takes about {{minutes}} minutes.",
+  },
+  privacyNotePseudonymous: {
+    he: "לצורך השוואה לאורך זמן, המערכת עשויה לקשר בין המענה שלך במדידות שונות באמצעות מזהה פנימי שאינו מוצג להנהלת הארגון.",
+    en: "For comparison over time, the system may link your answers across measurements using an internal identifier that is not shown to the organization's leadership.",
+  },
+  startLabel: { he: "מתחילים", en: "Start" },
+  completionTitle: { he: "תודה, סיימנו.", en: "Thank you, we're done." },
+  completionBody: {
+    he: "המענה שלך נקלט בהצלחה. התשובות יצטרפו לתמונה הארגונית הכוללת וישמשו להבנת דפוסי השימוש ב-AI, החסמים וההזדמנויות להמשך.",
+    en: "Your response has been recorded. Your answers will join the overall organizational picture and help us understand AI usage patterns, barriers and next opportunities.",
+  },
+} satisfies Record<string, LocalizedText>;
+
+/* --------------------------------------------------------------- types */
 
 export interface LibraryQuestion {
   canonicalId: string;
@@ -32,564 +66,763 @@ export interface LibrarySection {
   category: SectionCategory;
   name: LocalizedText;
   description: LocalizedText;
+  intro?: LocalizedText;
+  fallbackIntro?: LocalizedText;
   sourceType: SourceType;
   researchStatus: ResearchStatus;
   audience: Audience;
   recommendedCore?: boolean;
   longitudinalCore?: boolean;
   mandatory?: boolean;
+  required?: boolean;
   sourceReference?: string;
   displayRules?: DisplayRule[];
   questions: LibraryQuestion[];
 }
 
-const L5 = { min: 1, max: 5, labels: LIKERT_5_LABELS };
-const IF_MANAGER: DisplayRule[] = [{ field: "q:ctx_is_manager", operator: "eq", value: "yes" }];
-const IF_EMPLOYEE: DisplayRule[] = [{ field: "q:ctx_is_manager", operator: "eq", value: "no" }];
-const IF_AI_USER: DisplayRule[] = [{ field: "q:ctx_ai_use_30d", operator: "neq", value: "none" }];
+/* -------------------------------------------------------------- scales */
 
-const likert = (canonicalId: string, he: string, en: string, metricId: string, extra: Partial<LibraryQuestion> = {}): LibraryQuestion => ({
-  canonicalId,
-  type: "likert_5",
-  content: { text: { he, en }, scale: L5, wordingStatus: "illustrative" },
-  metricId,
-  ...extra,
-});
+const labels = (pairs: Array<[string, string]>): LocalizedText[] => pairs.map(([he, en]) => ({ he, en }));
 
-const validatedItem = (canonicalId: string, scaleName: LocalizedText, index: number, dimension: LocalizedText, metricId: string): LibraryQuestion => ({
-  canonicalId,
-  type: "likert_5",
-  locked: true,
-  content: {
-    text: {
-      he: `[נוסח פריט ${index} מהסולם המתוקף — ${scaleName.he} · ${dimension.he}]`,
-      en: `[Item ${index} wording from the validated scale — ${scaleName.en} · ${dimension.en}]`,
-    },
-    scale: L5,
-    wordingStatus: "placeholder",
-  },
-  metricId,
-});
+const AGREE_7: Scale = {
+  min: 1,
+  max: 7,
+  labels: labels([
+    ["כלל לא מסכים/ה", "Strongly disagree"],
+    ["לא מסכים/ה", "Disagree"],
+    ["נוטה לא להסכים", "Somewhat disagree"],
+    ["לא מסכים/ה ולא לא מסכים/ה", "Neither agree nor disagree"],
+    ["נוטה להסכים", "Somewhat agree"],
+    ["מסכים/ה", "Agree"],
+    ["מסכים/ה מאוד", "Strongly agree"],
+  ]),
+};
+
+const EXTENT_7: Scale = {
+  min: 1,
+  max: 7,
+  labels: labels([
+    ["בכלל לא", "Not at all"],
+    ["במידה מועטה מאוד", "To a very small extent"],
+    ["במידה מועטה", "To a small extent"],
+    ["במידה בינונית", "To a moderate extent"],
+    ["במידה רבה", "To a large extent"],
+    ["במידה רבה מאוד", "To a very large extent"],
+    ["במידה רבה ביותר", "Extremely"],
+  ]),
+};
+
+const FREQ_5: Scale = {
+  min: 1,
+  max: 5,
+  labels: labels([
+    ["אף פעם", "Never"],
+    ["לעיתים רחוקות", "Rarely"],
+    ["לפעמים", "Sometimes"],
+    ["לעיתים קרובות", "Often"],
+    ["כמעט תמיד", "Almost always"],
+  ]),
+};
+
+const AGREE_5: Scale = {
+  min: 1,
+  max: 5,
+  labels: labels([
+    ["כלל לא מסכים/ה", "Strongly disagree"],
+    ["לא מסכים/ה", "Disagree"],
+    ["לא מסכים/ה ולא לא מסכים/ה", "Neither agree nor disagree"],
+    ["מסכים/ה", "Agree"],
+    ["מסכים/ה מאוד", "Strongly agree"],
+  ]),
+};
+
+const EXTENT_5_INTEGRATION: Scale = {
+  min: 1,
+  max: 5,
+  labels: labels([
+    ["כמעט בכלל לא", "Almost not at all"],
+    ["במידה מועטה", "To a small extent"],
+    ["במידה בינונית", "To a moderate extent"],
+    ["במידה רבה", "To a large extent"],
+    ["במידה רבה מאוד", "To a very large extent"],
+  ]),
+};
+
+const EXTENT_5_EXPANSION: Scale = {
+  min: 1,
+  max: 5,
+  labels: labels([
+    ["בכלל לא", "Not at all"],
+    ["במידה מועטה", "To a small extent"],
+    ["במידה בינונית", "To a moderate extent"],
+    ["במידה רבה", "To a large extent"],
+    ["במידה רבה מאוד", "To a very large extent"],
+  ]),
+};
+
+const ACCESS_5: Scale = {
+  min: 1,
+  max: 5,
+  labels: labels([
+    ["אין לי גישה מספקת", "I do not have sufficient access"],
+    ["גישה מוגבלת", "Limited access"],
+    ["גישה חלקית", "Partial access"],
+    ["גישה טובה", "Good access"],
+    ["יש לי את הכלים הנדרשים לי", "I have the tools I need"],
+  ]),
+};
+
+/* -------------------------------------------------------------- helpers */
+
+const AI_USER: DisplayRule[] = [{ field: "q:USE_01", operator: "neq", value: "none" }];
+const IS_MANAGER: DisplayRule[] = [{ field: "q:CTX_03", operator: "eq", value: "yes" }];
+const HAS_MANAGER: DisplayRule[] = [{ field: "q:MEXP_SCREEN_01", operator: "eq", value: "yes" }];
+
+const opt = (value: string, he: string, en: string, extra: Partial<ChoiceOption> = {}): ChoiceOption => ({ value, label: { he, en }, ...extra });
+/** Segment options use the Hebrew label as value so dashboard filters read naturally. */
+const segOpt = (he: string, en: string): ChoiceOption => ({ value: he, label: { he, en } });
+
+const YES_NO = [opt("yes", "כן", "Yes"), opt("no", "לא", "No")];
+
+function scaleItem(
+  canonicalId: string,
+  he: string,
+  en: string,
+  scale: Scale,
+  metricId: string | undefined,
+  extra: Partial<QuestionTemplateContent> = {},
+  questionExtra: Partial<LibraryQuestion> = {},
+): LibraryQuestion {
+  return {
+    canonicalId,
+    type: scale.max === 7 ? "likert_7" : "likert_5",
+    content: { text: { he, en }, scale, wordingStatus: "final", allowPreferNotToAnswer: false, ...extra },
+    metricId,
+    ...questionExtra,
+  };
+}
+
+function validatedItem(canonicalId: string, he: string, en: string, scale: Scale, metricId: string, citation: string, extra: Partial<QuestionTemplateContent> = {}): LibraryQuestion {
+  return scaleItem(canonicalId, he, en, scale, metricId, { translationStatus: "ngg_hebrew_adaptation", sourceCitation: citation, longitudinalCore: true, ...extra }, { locked: true });
+}
+
+const NA_WORK: LocalizedText = { he: "לא רלוונטי לעבודה שלי", en: "Not relevant to my work" };
+const NA_DONT_KNOW: LocalizedText = { he: "לא יודע/ת", en: "I don't know" };
+const NA_MANAGER_EXP: LocalizedText = { he: "לא רלוונטי / לא יכול/ה להעריך", en: "Not relevant / cannot assess" };
+const NA_AGENTIC_MGMT: LocalizedText = { he: "לא רלוונטי / עדיין לא התנסיתי בכך", en: "Not relevant / have not tried this yet" };
+
+/* ---------------------------------------------------------- tool options */
+
+const TOOL_OPTIONS: ChoiceOption[] = [
+  opt("chatgpt", "ChatGPT", "ChatGPT"),
+  opt("claude", "Claude", "Claude"),
+  opt("gemini", "Gemini", "Gemini"),
+  opt("copilot", "Microsoft Copilot", "Microsoft Copilot"),
+  opt("internal", "כלי AI ארגוני פנימי", "Internal organizational AI tool"),
+  opt("research", "כלי AI למחקר או חיפוש", "AI tool for research or search"),
+  opt("writing", "כלי AI לכתיבה או יצירת תוכן", "AI tool for writing or content creation"),
+  opt("data", "כלי AI לניתוח נתונים", "AI tool for data analysis"),
+  opt("code", "כלי AI לקוד או פיתוח", "AI tool for code or development"),
+  opt("media", "כלי AI ליצירת תמונה, וידאו או אודיו", "AI tool for image, video or audio creation"),
+  opt("automation", "כלי אוטומציה או AI שמבצע מספר פעולות ברצף", "Automation tool or AI that performs several actions in sequence"),
+  opt("other", "אחר", "Other"),
+];
+
+const DELEGATION_ACTIVITIES: Array<[string, string, string]> = [
+  ["DELEGATION_01", "תזמון וארגון פגישות", "Scheduling and organizing meetings"],
+  ["DELEGATION_02", "סיכום פגישות, מסמכים ומידע", "Summarizing meetings, documents and information"],
+  ["DELEGATION_03", "כתיבת דוחות, עדכונים ותקשורת שגרתית", "Writing reports, updates and routine communication"],
+  ["DELEGATION_04", "איסוף וניתוח נתונים", "Collecting and analysing data"],
+  ["DELEGATION_05", "תכנון עבודה ותעדוף משימות", "Work planning and task prioritisation"],
+  ["DELEGATION_06", "ניתוח חלופות וסיכונים", "Analysing alternatives and risks"],
+  ["DELEGATION_07", "הכנה לקבלת החלטות", "Preparing for decisions"],
+  ["DELEGATION_08", "מעקב אחר ביצועים, יעדים או KPI", "Tracking performance, goals or KPIs"],
+  ["DELEGATION_09", "הכנה לשיחות משוב ופיתוח עובדים", "Preparing feedback and development conversations"],
+  ["DELEGATION_10", "תקשורת שגרתית עם לקוחות או בעלי עניין", "Routine communication with customers or stakeholders"],
+  ["DELEGATION_11", "למידה ופיתוח מקצועי של הצוות", "Team learning and professional development"],
+  ["DELEGATION_12", "תהליכים חוזרים של הצוות שניתנים להגדרה מראש", "Recurring team processes that can be defined in advance"],
+];
 
 /* ------------------------------------------------------------- sections */
 
 export const LIBRARY_SECTIONS: LibrarySection[] = [
+  /* ---- A. Context */
   {
-    key: "org_context",
+    key: "SECTION_CONTEXT",
     version: "1.0",
     category: "core_context",
-    name: { he: "הקשר ארגוני", en: "Organizational Context" },
-    description: { he: "יחידה, משפחת תפקיד ואתר. משמש לפילוח מצרפי בלבד.", en: "Unit, role family and location. Used for aggregate segmentation only." },
+    name: { he: "רקע תעסוקתי", en: "Work context" },
+    description: { he: "יחידה, משפחת תפקיד, אחריות ניהולית וותק. משמש לפילוח מצרפי ולניתוב.", en: "Unit, role family, managerial responsibility and tenure. Used for aggregate segmentation and routing." },
+    intro: { he: "כמה פרטים כלליים שיעזרו לנו להבין את התוצאות ברמת הארגון. המידע יוצג רק בקבוצות גדולות מספיק לשמירה על פרטיות.", en: "A few general details that help us understand the results at organization level. This information is only shown for groups large enough to protect privacy." },
     sourceType: "ngg_measure",
     researchStatus: "ngg_measure",
     audience: "all",
     recommendedCore: true,
-    longitudinalCore: true,
     mandatory: true,
     questions: [
       {
-        canonicalId: "ctx_department",
-        type: "single_choice",
-        content: { text: { he: "באיזו יחידה את/ה עובד/ת?", en: "Which unit do you work in?" }, optionsFrom: "departments", segmentKey: "department", allowPreferNotToAnswer: true },
-      },
-      {
-        canonicalId: "ctx_role_family",
-        type: "single_choice",
-        content: { text: { he: "איזו משפחת תפקיד מתארת הכי טוב את עבודתך?", en: "Which role family best describes your work?" }, optionsFrom: "roleFamilies", segmentKey: "role_family" },
-      },
-      {
-        canonicalId: "ctx_location",
-        type: "single_choice",
-        required: false,
-        content: { text: { he: "באיזה אתר את/ה עובד/ת בעיקר?", en: "Where are you mainly based?" }, optionsFrom: "locations", segmentKey: "location" },
-      },
-    ],
-  },
-  {
-    key: "role_seniority",
-    version: "1.0",
-    category: "core_context",
-    name: { he: "תפקיד וותק", en: "Role & Seniority" },
-    description: { he: "אחריות ניהולית וותק. קובע את הניתוב למודולים למנהלים.", en: "Managerial responsibility and seniority. Drives routing to manager modules." },
-    sourceType: "ngg_measure",
-    researchStatus: "ngg_measure",
-    audience: "all",
-    recommendedCore: true,
-    longitudinalCore: true,
-    mandatory: true,
-    questions: [
-      {
-        canonicalId: "ctx_is_manager",
+        canonicalId: "CTX_01",
         type: "single_choice",
         content: {
-          text: { he: "האם יש לך אחריות ניהולית ישירה על עובדים?", en: "Do you directly manage other employees?" },
-          options: [
-            { value: "yes", label: { he: "כן", en: "Yes" } },
-            { value: "no", label: { he: "לא", en: "No" } },
-          ],
-          segmentKey: "is_manager",
+          text: { he: "באיזו יחידה או מחלקה עיקרית את/ה עובד/ת?", en: "In which main unit or department do you work?" },
+          optionsFrom: "departments",
+          extraOptions: [segOpt("אחר / לא מופיע ברשימה", "Other / not listed")],
+          segmentKey: "department",
           allowPreferNotToAnswer: false,
+          wordingStatus: "final",
         },
       },
       {
-        canonicalId: "ctx_seniority",
-        type: "single_choice",
-        content: { text: { he: "כמה זמן את/ה בארגון?", en: "How long have you been with the organization?" }, optionsFrom: "seniorityGroups", segmentKey: "seniority" },
-      },
-      {
-        canonicalId: "ctx_team_size",
+        canonicalId: "CTX_02",
         type: "single_choice",
         content: {
-          text: { he: "כמה עובדים מדווחים אליך ישירות?", en: "How many people report to you directly?" },
+          text: { he: "מה מתאר בצורה הטובה ביותר את סוג התפקיד שלך?", en: "What best describes the type of role you have?" },
+          optionsFrom: "roleFamilies",
           options: [
-            { value: "1_3", label: { he: "1–3", en: "1–3" } },
-            { value: "4_8", label: { he: "4–8", en: "4–8" } },
-            { value: "9_15", label: { he: "9–15", en: "9–15" } },
-            { value: "16_plus", label: { he: "16 ומעלה", en: "16 or more" } },
+            segOpt("ניהול", "Management"),
+            segOpt("מקצועי / מומחה", "Professional / specialist"),
+            segOpt("טכנולוגיה / פיתוח / דאטה", "Technology / development / data"),
+            segOpt("תפעול / פרויקטים", "Operations / projects"),
+            segOpt("מכירות / שיווק / שירות", "Sales / marketing / service"),
+            segOpt("משאבי אנוש / למידה ופיתוח", "HR / learning & development"),
+            segOpt("כספים / משפטי / רכש", "Finance / legal / procurement"),
+            segOpt("אדמיניסטרציה", "Administration"),
+            segOpt("אחר", "Other"),
           ],
-          displayRules: IF_MANAGER,
+          segmentKey: "role_family",
+          allowPreferNotToAnswer: false,
+          wordingStatus: "final",
+        },
+      },
+      {
+        canonicalId: "CTX_03",
+        type: "single_choice",
+        content: { text: { he: "האם יש לך אחריות ניהולית ישירה על עובדים?", en: "Do you have direct managerial responsibility for employees?" }, options: YES_NO, segmentKey: "is_manager", allowPreferNotToAnswer: false, wordingStatus: "final" },
+      },
+      {
+        canonicalId: "CTX_04",
+        type: "single_choice",
+        content: {
+          text: { he: "כמה עובדים מדווחים אליך ישירות?", en: "How many employees report to you directly?" },
+          options: [opt("1_3", "1–3", "1–3"), opt("4_7", "4–7", "4–7"), opt("8_15", "8–15", "8–15"), opt("16_plus", "16 ומעלה", "16 or more")],
+          displayRules: IS_MANAGER,
+          allowPreferNotToAnswer: false,
+          wordingStatus: "final",
+        },
+      },
+      {
+        canonicalId: "CTX_05",
+        type: "single_choice",
+        content: {
+          text: { he: "כמה זמן את/ה עובד/ת בארגון?", en: "How long have you worked at the organization?" },
+          optionsFrom: "seniorityGroups",
+          options: [segOpt("פחות משנה", "Less than a year"), segOpt("שנה עד 3 שנים", "1 to 3 years"), segOpt("4–7 שנים", "4–7 years"), segOpt("8 שנים ומעלה", "8 years or more")],
+          segmentKey: "seniority",
+          allowPreferNotToAnswer: false,
+          wordingStatus: "final",
         },
       },
     ],
   },
+
+  /* ---- B. AI usage */
   {
-    key: "ai_usage",
+    key: "SECTION_AI_USAGE",
     version: "1.0",
     category: "ai_adoption",
-    name: { he: "שימוש ב-AI", en: "AI Usage" },
-    description: { he: "תדירות ועומק השימוש בכלי AI בעבודה בחודש האחרון.", en: "Frequency and depth of AI tool use at work in the last month." },
+    name: { he: "שימוש ב-AI בעבודה", en: "AI use at work" },
+    description: { he: "תדירות, כלים, סוגי משימות, שילוב בשגרה, אוטומציה וגישה לכלים.", en: "Frequency, tools, task types, routine integration, automation and tool access." },
+    intro: { he: "השאלות הבאות עוסקות במה שקורה בפועל בעבודה שלך כיום.", en: "The following questions are about what actually happens in your work today." },
     sourceType: "ngg_measure",
     researchStatus: "ngg_measure",
     audience: "all",
     recommendedCore: true,
     longitudinalCore: true,
+    mandatory: true,
     questions: [
       {
-        canonicalId: "ctx_ai_use_30d",
+        canonicalId: "USE_01",
         type: "single_choice",
+        metricId: "ai_usage_frequency",
         content: {
-          text: { he: "באיזו תדירות השתמשת בכלי AI לצורכי עבודה בחודש האחרון?", en: "How often did you use AI tools for work in the last 30 days?" },
+          text: { he: "באיזו תדירות השתמשת בכלי AI לצורכי העבודה במהלך 30 הימים האחרונים?", en: "How often did you use AI tools for work during the last 30 days?" },
           options: [
-            { value: "none", label: { he: "בכלל לא", en: "Not at all" }, score: 1 },
-            { value: "once_twice", label: { he: "פעם או פעמיים", en: "Once or twice" }, score: 2 },
-            { value: "weekly", label: { he: "בערך פעם בשבוע", en: "About once a week" }, score: 3 },
-            { value: "several_weekly", label: { he: "כמה פעמים בשבוע", en: "Several times a week" }, score: 4 },
-            { value: "daily", label: { he: "כמעט כל יום", en: "Almost every day" }, score: 5 },
+            opt("none", "לא השתמשתי כלל", "I did not use any", { score: 1 }),
+            opt("lt_weekly", "פחות מפעם בשבוע", "Less than once a week", { score: 2 }),
+            opt("days_1_2", "1–2 ימים בשבוע", "1–2 days a week", { score: 3 }),
+            opt("days_3_4", "3–4 ימים בשבוע", "3–4 days a week", { score: 4 }),
+            opt("almost_daily", "כמעט בכל יום עבודה", "Almost every workday", { score: 5 }),
+            opt("several_daily", "מספר פעמים ביום", "Several times a day", { score: 6 }),
           ],
           allowPreferNotToAnswer: false,
+          longitudinalCore: true,
+          wordingStatus: "final",
         },
-        metricId: "ai_usage",
       },
-      likert("usage_routine", "כלי AI הם חלק משגרת העבודה שלי.", "AI tools are part of my daily work routine.", "ai_usage", { content: { text: { he: "כלי AI הם חלק משגרת העבודה שלי.", en: "AI tools are part of my daily work routine." }, scale: L5, wordingStatus: "illustrative", displayRules: IF_AI_USER } }),
       {
-        canonicalId: "usage_tools",
+        canonicalId: "USE_02",
         type: "multi_select",
-        required: false,
+        content: { text: { he: "באילו סוגי כלי AI השתמשת לצורכי עבודה במהלך 30 הימים האחרונים?", en: "Which types of AI tools did you use for work during the last 30 days?" }, options: TOOL_OPTIONS, displayRules: AI_USER, allowPreferNotToAnswer: false, wordingStatus: "final" },
+      },
+      {
+        canonicalId: "USE_03",
+        type: "single_choice",
         content: {
-          text: { he: "באילו סוגי כלי AI השתמשת לעבודה?", en: "Which kinds of AI tools did you use for work?" },
-          options: [
-            { value: "chat_assistant", label: { he: "עוזר שיחה כללי (צ׳אט)", en: "General chat assistant" } },
-            { value: "office_copilot", label: { he: "AI משולב בכלי משרד", en: "AI built into office tools" } },
-            { value: "coding", label: { he: "עוזר קוד", en: "Coding assistant" } },
-            { value: "internal", label: { he: "כלי AI פנים-ארגוני", en: "Internal company AI tool" } },
-            { value: "agents", label: { he: "סוכני AI / אוטומציות", en: "AI agents / automations" } },
-          ],
-          displayRules: IF_AI_USER,
+          text: { he: "באיזה כלי AI את/ה משתמש/ת הכי הרבה לצורכי העבודה?", en: "Which AI tool do you use most for work?" },
+          options: TOOL_OPTIONS,
+          optionsFromAnswer: "USE_02",
+          displayRules: [...AI_USER, { field: "q:USE_02", operator: "count_gt", value: 1 }],
+          allowPreferNotToAnswer: false,
+          wordingStatus: "final",
         },
       },
-    ],
-  },
-  {
-    key: "use_case_breadth",
-    version: "1.0",
-    category: "ai_adoption",
-    name: { he: "רוחב השימושים", en: "Use Case Breadth" },
-    description: { he: "לאילו סוגי משימות משמש ה-AI ואילו דפוסי עבודה קיימים.", en: "Which task types AI is used for and which work patterns exist." },
-    sourceType: "ngg_measure",
-    researchStatus: "ngg_measure",
-    audience: "all",
-    recommendedCore: true,
-    longitudinalCore: true,
-    displayRules: IF_AI_USER,
-    questions: [
       {
-        canonicalId: "usecase_types",
+        canonicalId: "USE_04",
         type: "multi_select",
         metricId: "use_case_breadth",
         content: {
-          text: { he: "לאילו משימות השתמשת ב-AI בחודש האחרון?", en: "Which tasks did you use AI for in the last month?" },
+          text: { he: "באילו סוגי משימות את/ה משתמש/ת ב-AI כיום?", en: "For which types of tasks do you use AI today?" },
           options: [
-            { value: "writing", label: { he: "כתיבה וניסוח", en: "Writing and editing" } },
-            { value: "analysis", label: { he: "ניתוח נתונים", en: "Data analysis" } },
-            { value: "summaries", label: { he: "סיכום מסמכים ופגישות", en: "Summarising documents and meetings" } },
-            { value: "presentations", label: { he: "הכנת מצגות", en: "Preparing presentations" } },
-            { value: "automation", label: { he: "אוטומציה של תהליכים", en: "Process automation" } },
-            { value: "research", label: { he: "מחקר והכנה", en: "Research and preparation" } },
-            { value: "decisions", label: { he: "תמיכה בקבלת החלטות", en: "Decision support" } },
-            { value: "code", label: { he: "כתיבת קוד", en: "Writing code" } },
-            { value: "other", label: { he: "אחר", en: "Other" } },
+            opt("writing", "כתיבה ועריכה", "Writing and editing"),
+            opt("summaries", "סיכום מסמכים, פגישות או מידע", "Summarizing documents, meetings or information"),
+            opt("research", "חיפוש ומחקר", "Search and research"),
+            opt("ideation", "סיעור מוחות ופיתוח רעיונות", "Brainstorming and developing ideas"),
+            opt("analysis", "ניתוח נתונים או מידע", "Analysing data or information"),
+            opt("presentations", "הכנת מצגות או דוחות", "Preparing presentations or reports"),
+            opt("decisions", "ניתוח חלופות ותמיכה בקבלת החלטות", "Analysing alternatives and decision support"),
+            opt("planning", "תכנון עבודה, משימות או פרויקטים", "Planning work, tasks or projects"),
+            opt("communication", "תקשורת עם עובדים, לקוחות או בעלי עניין", "Communication with employees, customers or stakeholders"),
+            opt("code", "קוד, פיתוח או משימות טכניות", "Code, development or technical tasks"),
+            opt("automation", "אוטומציה של תהליך עבודה", "Automating a work process"),
+            opt("learning", "למידה והתפתחות מקצועית", "Learning and professional development"),
+            opt("media", "יצירת תמונה, וידאו או אודיו", "Creating image, video or audio"),
+            opt("other", "אחר", "Other"),
           ],
+          displayRules: AI_USER,
+          allowPreferNotToAnswer: false,
+          longitudinalCore: true,
+          wordingStatus: "final",
         },
       },
+      scaleItem("USE_05", "באיזו מידה AI כבר הפך לחלק קבוע מהדרך שבה את/ה מבצע/ת את העבודה שלך?", "To what extent has AI already become a regular part of how you do your work?", EXTENT_5_INTEGRATION, "ai_work_integration", { displayRules: AI_USER, longitudinalCore: true }),
       {
-        canonicalId: "work_patterns",
-        type: "multi_select",
-        content: {
-          text: { he: "אילו מהדפוסים הבאים מתארים את העבודה שלך עם AI בחודש האחרון?", en: "Which of these patterns describe how you worked with AI in the last month?" },
-          helpText: { he: "אפשר לבחור כמה. אין כאן מדרג — רק תיאור.", en: "Choose all that apply. This is a description, not a ranking." },
-          options: [
-            { value: "assist", label: { he: "סיוע — AI עוזר לי במשימה שאני מבצע/ת", en: "Assist — AI helps with a task I perform" } },
-            { value: "collaborate", label: { he: "שיתוף — עובד/ת עם AI הלוך ושוב על תוצר", en: "Collaborate — iterating with AI on an output" } },
-            { value: "delegate", label: { he: "האצלה — מוסר/ת ל-AI משימה שלמה ובודק/ת את התוצר", en: "Delegate — handing AI a whole task and reviewing the result" } },
-            { value: "orchestrate", label: { he: "תזמור — מפעיל/ה כמה כלים או סוכנים בזרימת עבודה", en: "Orchestrate — running several tools or agents in a workflow" } },
-          ],
-        },
-      },
-    ],
-  },
-  {
-    key: "tool_access",
-    version: "1.0",
-    category: "ai_adoption",
-    name: { he: "גישה לכלים", en: "Tool Access" },
-    description: { he: "אילו כלים מאושרים זמינים ומה חסר.", en: "Which approved tools are available and what is missing." },
-    sourceType: "ngg_measure",
-    researchStatus: "ngg_measure",
-    audience: "all",
-    questions: [
-      {
-        canonicalId: "access_approved_tools",
+        canonicalId: "USE_06",
         type: "single_choice",
         content: {
-          text: { he: "האם יש לך גישה לכלי AI שאושרו על ידי הארגון?", en: "Do you have access to AI tools approved by the organization?" },
+          text: { he: "האם יש כיום משימות חוזרות בעבודה שלך שבהן AI מבצע חלק מהעבודה באופן אוטומטי או כמעט אוטומטי?", en: "Are there recurring tasks in your work today in which AI performs part of the work automatically or almost automatically?" },
           options: [
-            { value: "yes_sufficient", label: { he: "כן, והם מספיקים לי", en: "Yes, and they are sufficient" } },
-            { value: "yes_insufficient", label: { he: "כן, אבל הם לא מספיקים", en: "Yes, but they are not sufficient" } },
-            { value: "no", label: { he: "לא", en: "No" } },
-            { value: "unknown", label: { he: "לא יודע/ת", en: "I don't know" } },
+            opt("no", "לא", "No"),
+            opt("one", "כן, במשימה חוזרת אחת", "Yes, in one recurring task"),
+            opt("several", "כן, בכמה משימות חוזרות", "Yes, in several recurring tasks"),
+            opt("significant", "כן, בחלק משמעותי מתהליך העבודה שלי", "Yes, in a significant part of my work process"),
+            opt("unsure", "לא בטוח/ה", "Not sure"),
           ],
+          displayRules: AI_USER,
+          allowPreferNotToAnswer: false,
+          longitudinalCore: true,
+          wordingStatus: "final",
         },
       },
-      {
-        canonicalId: "access_missing",
-        type: "short_text",
-        required: false,
-        content: { text: { he: "איזה כלי או יכולת חסרים לך?", en: "Which tool or capability are you missing?" } },
-      },
+      scaleItem("USE_07", "באיזו מידה יש לך גישה לכלי ה-AI הנדרשים לך כדי לבצע את עבודתך בצורה יעילה?", "To what extent do you have access to the AI tools you need to do your work effectively?", ACCESS_5, "tool_access", { naOption: { he: "לא רלוונטי לתפקיד שלי", en: "Not relevant to my role" }, longitudinalCore: true }),
     ],
   },
+
+  /* ---- C. GAIL */
   {
-    key: "gen_ai_literacy",
+    key: "SECTION_GAIL_17",
     version: "1.0",
     category: "validated_measures",
-    name: { he: "אוריינות AI גנרטיבית", en: "Generative AI Literacy" },
-    description: { he: "סולם מחקרי מתוקף. ניסוח, סקאלה וחישוב נעולים.", en: "Validated research scale. Wording, scale and scoring are locked." },
+    name: { he: "אוריינות AI גנרטיבית (GAIL)", en: "Generative AI Literacy (GAIL)" },
+    description: { he: "סולם מקור מתוקף, 17 פריטים, 7 דרגות. ניסוח, סדר, סקאלה וחישוב נעולים. הגרסה העברית היא התאמה של NGG.", en: "Validated source scale, 17 items, 7 points. Wording, order, scale and scoring are locked. The Hebrew version is an NGG adaptation." },
+    intro: {
+      he: "השאלות הבאות עוסקות בידע וביכולת שלך לעבוד עם AI גנרטיבי. גם אם הניסיון שלך מוגבל, חשוב לענות לפי התחושה שלך כיום.\n\nעד כמה את/ה מסכים/ה עם כל אחד מהמשפטים הבאים?",
+      en: "The following questions are about your knowledge and ability to work with generative AI. Even if your experience is limited, please answer according to how you feel today.\n\nTo what extent do you agree with each of the following statements?",
+    },
     sourceType: "validated",
     researchStatus: "validated",
     audience: "all",
     recommendedCore: true,
     longitudinalCore: true,
-    sourceReference: "Validated generative AI literacy scale — original wording to be inserted by NGG methodology lead (licensed source).",
-    questions: (() => {
-      const scale = { he: "אוריינות AI גנרטיבית", en: "Generative AI Literacy" };
-      const dims: Array<[string, LocalizedText, string]> = [
-        ["basic_operation", { he: "הפעלה בסיסית", en: "Basic Operation" }, "ai_literacy_basic_operation"],
-        ["prompting", { he: "ניסוח בקשות", en: "Prompting" }, "ai_literacy_prompting"],
-        ["evaluation", { he: "הערכת תוצרים", en: "Evaluation" }, "ai_literacy_evaluation"],
-        ["innovative", { he: "יישום חדשני", en: "Innovative Application" }, "ai_literacy_innovative_application"],
-        ["ethics", { he: "אתיקה וציות", en: "Ethics & Compliance" }, "ai_literacy_ethics_compliance"],
-      ];
-      let index = 0;
-      return dims.flatMap(([key, label, metric]) => [1, 2].map((n) => validatedItem(`ai_lit_${key}_0${n}`, scale, ++index, label, metric)));
-    })(),
+    sourceReference: SOURCE_CITATIONS.gail,
+    questions: [
+      validatedItem("GAIL_BOS_01", "אני מבין/ה את העקרונות והמגבלות של כלי ה-AI שבהם אני משתמש/ת.", "I understand the principles and limitations of the AI I use.", AGREE_7, "gail_basic_operation", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_BOS_02", "אני יודע/ת להשתמש היטב בפונקציות המרכזיות וביכולות השיתופיות של כלי AI.", "I can proficiently utilize the core and collaborative functions of AI tools.", AGREE_7, "gail_basic_operation", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_BOS_03", "אני מסוגל/ת לפתור בעיות טכניות נפוצות שעולות במהלך השימוש ב-AI.", "I can solve common technical problems encountered when using AI.", AGREE_7, "gail_basic_operation", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_PE_01", "אני מסוגל/ת לנסח הנחיות אפקטיביות ל-AI בהתאם לדרישות המשימה.", "I can design effective AI prompts based on task requirements.", AGREE_7, "gail_prompt_engineering", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_PE_02", "אני מסוגל/ת לשפר הנחיות ל-AI באמצעות שילוב של מונחים מקצועיים ודוגמאות.", "I can optimize AI prompts by integrating technical terminology and examples.", AGREE_7, "gail_prompt_engineering", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_PE_03", "אני מסוגל/ת לשפר את ההנחיות שלי ל-AI באופן מתמשך בהתאם לתוצרים ולמשוב שאני מקבל/ת.", "I can continuously refine AI prompts based on generated results and feedback.", AGREE_7, "gail_prompt_engineering", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_QE_01", "אני מסוגל/ת להעריך את הדיוק והאמינות של תוכן שנוצר באמצעות AI.", "I can assess the accuracy and reliability of AI-generated content.", AGREE_7, "gail_quality_evaluation", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_QE_02", "אני מסוגל/ת להעריך את העקביות והקוהרנטיות של תוכן שנוצר באמצעות AI.", "I can assess the consistency and coherence of AI-generated content.", AGREE_7, "gail_quality_evaluation", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_QE_03", "אני מסוגל/ת להעריך את ההיגיון והשלמות של תוכן שנוצר באמצעות AI.", "I can evaluate the logic and completeness of AI-generated content.", AGREE_7, "gail_quality_evaluation", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_IA_01", "אני מסוגל/ת לזהות ולנצל הזדמנויות חדשות בעבודה שלי באמצעות AI.", "I can identify and capitalize on innovative opportunities in my work through AI.", AGREE_7, "gail_innovative_application", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_IA_02", "אני מסוגל/ת להשתמש ב-AI כדי לפתח רעיונות יצירתיים וחדשניים בעבודה שלי.", "I can generate creative and innovative ideas for my work using AI.", AGREE_7, "gail_innovative_application", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_IA_03", "אני מסוגל/ת להפוך רעיונות חדשניים לתוצרים מעשיים באמצעות AI.", "I can transform innovative ideas into tangible results using AI.", AGREE_7, "gail_innovative_application", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_EC_01", "אני מסוגל/ת להימנע מסיכונים אתיים בעת שימוש ב-AI.", "I can avoid ethical risks when using AI.", AGREE_7, "gail_ethics_compliance", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_EC_02", "אני מסוגל/ת להגן על פרטיות ועל מידע רגיש בעת שימוש ב-AI.", "I can ensure the protection of privacy and sensitive data when using AI.", AGREE_7, "gail_ethics_compliance", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_EC_03", "אני מסוגל/ת לפעול בהתאם לחוקים ולרגולציה הרלוונטיים לשימוש ב-AI.", "I can comply with laws and regulations related to AI usage.", AGREE_7, "gail_ethics_compliance", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_EC_04", "אני מסוגל/ת לפעול בהתאם להנחיות הארגון בנוגע לשימוש ב-AI.", "I can follow organizational guidelines when using AI.", AGREE_7, "gail_ethics_compliance", SOURCE_CITATIONS.gail),
+      validatedItem("GAIL_EC_05", "אני מסוגל/ת להשתמש ב-AI בהתאם לכללי האתיקה והסטנדרטים המקצועיים הרלוונטיים לתפקיד שלי.", "I can adhere to professional ethics when using AI.", AGREE_7, "gail_ethics_compliance", SOURCE_CITATIONS.gail),
+    ],
   },
+
+  /* ---- D. Agentic work */
   {
-    key: "trust_in_ai",
+    key: "SECTION_AGENTIC_WORK",
+    version: "1.0",
+    category: "ngg_measures",
+    name: { he: "עומק העבודה עם AI", en: "Agentic work" },
+    description: { he: "מדד ניסיוני של NGG: סיוע, שיתוף, האצלה ותזמור. אינו מדרג בשלות.", en: "Experimental NGG measure: assist, collaborate, delegate, orchestrate. Not a maturity ranking." },
+    intro: {
+      he: "השאלות הבאות עוסקות בעומק העבודה שלך עם AI — משימוש נקודתי ועד שילוב שלו בתהליכי עבודה מורכבים יותר.\n\nכאשר הדבר רלוונטי למשימה שלך, באיזו תדירות את/ה פועל/ת כך?",
+      en: "The following questions are about the depth of your work with AI — from occasional use to integrating it into more complex work processes.\n\nWhen relevant to your task, how often do you act this way?",
+    },
+    sourceType: "ngg_measure",
+    researchStatus: "experimental",
+    audience: "all",
+    recommendedCore: true,
+    longitudinalCore: true,
+    displayRules: AI_USER,
+    questions: [
+      scaleItem("AW_ASSIST_01", "אני משתמש/ת ב-AI כדי ליצור טיוטה, לסכם מידע או לקבל נקודת פתיחה למשימה.", "I use AI to create a draft, summarize information or get a starting point for a task.", FREQ_5, "aw_assist", { naOption: NA_WORK, longitudinalCore: true }),
+      scaleItem("AW_COLLAB_01", "אני עובד/ת עם ה-AI במספר סבבים ומשפר/ת את התוצר יחד איתו.", "I work with AI over several rounds and improve the output together with it.", FREQ_5, "aw_collaborate", { naOption: NA_WORK, longitudinalCore: true }),
+      scaleItem("AW_COLLAB_02", "אני מספק/ת ל-AI הקשר, דוגמאות, מגבלות או קריטריונים כדי לשפר את התוצאה.", "I give AI context, examples, constraints or criteria to improve the result.", FREQ_5, "aw_collaborate", { naOption: NA_WORK, longitudinalCore: true }),
+      scaleItem("AW_DELEGATE_01", "אני מעביר/ה ל-AI משימות שכוללות כמה שלבים, ולא רק בקשה בודדת.", "I hand AI tasks that involve several steps, not just a single request.", FREQ_5, "aw_delegate", { naOption: NA_WORK, longitudinalCore: true }),
+      scaleItem("AW_DELEGATE_02", "לפני שאני מעביר/ה משימה מורכבת ל-AI, אני מגדיר/ה מראש מה ייחשב תוצר מוצלח.", "Before handing a complex task to AI, I define in advance what will count as a successful output.", FREQ_5, "aw_delegate", { naOption: NA_WORK, longitudinalCore: true }),
+      scaleItem("AW_ORCH_01", "אני משלב/ת AI כחלק מתהליך עבודה קבוע שחוזר על עצמו.", "I integrate AI as part of a regular, recurring work process.", FREQ_5, "aw_orchestrate", { naOption: NA_WORK, longitudinalCore: true }),
+      scaleItem("AW_ORCH_02", "אני מאפשר/ת ל-AI להשתמש בכמה מקורות מידע, כלים או מערכות כחלק מביצוע משימה.", "I allow AI to use several information sources, tools or systems as part of carrying out a task.", FREQ_5, "aw_orchestrate", { naOption: NA_WORK, longitudinalCore: true }),
+      scaleItem("AW_ORCH_03", "בתהליכים מתקדמים, אני מגדיר/ה מראש באילו שלבים ה-AI יכול להתקדם באופן עצמאי ובאילו שלבים נדרשת התערבות אנושית.", "In advanced processes, I define in advance at which steps AI may proceed independently and at which steps human intervention is required.", FREQ_5, "aw_orchestrate", { naOption: NA_WORK, longitudinalCore: true }),
+    ],
+  },
+
+  /* ---- E1. S-TIAS */
+  {
+    key: "SECTION_STIAS_3",
     version: "1.0",
     category: "validated_measures",
-    name: { he: "אמון ב-AI", en: "Trust in AI" },
-    description: { he: "סולם מחקרי מתוקף. מוצג למי שהשתמש ב-AI בחודש האחרון.", en: "Validated research scale. Shown to respondents who used AI in the last month." },
+    name: { he: "אמון בכלי ה-AI (S-TIAS)", en: "Trust in the AI tool (S-TIAS)" },
+    description: { he: "סולם מקור מתוקף, 3 פריטים, 7 דרגות, מתייחס לכלי ה-AI העיקרי של המשיב/ה. אמון גבוה אינו בהכרח טוב יותר.", en: "Validated source scale, 3 items, 7 points, about the respondent's main AI tool. Higher trust is not automatically better." },
+    intro: {
+      he: "בשלוש השאלות הבאות, חשוב/י על כלי ה-AI שבו את/ה משתמש/ת הכי הרבה לצורכי העבודה: {{primary_ai_tool}}.\n\nבאיזו מידה כל אחד מהמשפטים הבאים מתאר את התחושה שלך כלפי הכלי הזה?",
+      en: "For the next three questions, think about the AI tool you use most for work: {{primary_ai_tool}}.\n\nTo what extent does each statement describe how you feel about this tool?",
+    },
+    fallbackIntro: {
+      he: "בשלוש השאלות הבאות, חשוב/י על כלי ה-AI שבו את/ה משתמש/ת הכי הרבה לצורכי העבודה.\n\nבאיזו מידה כל אחד מהמשפטים הבאים מתאר את התחושה שלך כלפי הכלי הזה?",
+      en: "For the next three questions, think about the AI tool you use most for work.\n\nTo what extent does each statement describe how you feel about this tool?",
+    },
     sourceType: "validated",
     researchStatus: "validated",
     audience: "all",
-    displayRules: IF_AI_USER,
-    sourceReference: "Validated trust-in-AI scale — original wording to be inserted by NGG methodology lead (licensed source).",
-    questions: [1, 2, 3, 4].map((n) => validatedItem(`trust_ai_0${n}`, { he: "אמון ב-AI", en: "Trust in AI" }, n, { he: "אמון", en: "Trust" }, "trust_ai")),
-  },
-  {
-    key: "agentic_work",
-    version: "2.1",
-    category: "ngg_measures",
-    name: { he: "עבודה אג׳נטית", en: "Agentic Work" },
-    description: { he: "עד כמה העבודה עם AI עוברת מסיוע נקודתי להאצלה ותזמור של משימות.", en: "How far work with AI moves from point assistance toward delegation and orchestration." },
-    sourceType: "ngg_measure",
-    researchStatus: "ngg_measure",
-    audience: "all",
     recommendedCore: true,
     longitudinalCore: true,
-    displayRules: IF_AI_USER,
+    displayRules: AI_USER,
+    sourceReference: SOURCE_CITATIONS.stias,
     questions: [
-      likert("agw_01", "בחודש האחרון האצלתי לכלי AI משימה שלמה — מהגדרת המטרה ועד תוצר מוכן לבדיקה.", "In the last month I delegated a complete task to an AI tool — from defining the goal to a result ready for review.", "agentic_work"),
-      likert("agw_02", "אני מגדיר/ה ל-AI מטרה ואילוצים במקום להנחות אותו צעד-צעד.", "I give AI a goal and constraints rather than step-by-step instructions.", "agentic_work"),
-      likert("agw_03", "אני משלב/ת כמה כלי AI או שלבים בזרימת עבודה אחת.", "I combine several AI tools or steps into one workflow.", "agentic_work"),
-      likert("agw_04", "יש לי משימות חוזרות שה-AI מבצע עבורי באופן קבוע.", "I have recurring tasks that AI performs for me on a regular basis.", "agentic_work"),
-      likert("agw_05", "אני יודע/ת אילו משימות נכון להאציל ל-AI ואילו לא.", "I know which tasks are appropriate to delegate to AI and which are not.", "agentic_work"),
-      likert("agw_06", "אני מעדיף/ה לבצע את המשימה בעצמי מאשר להסביר אותה ל-AI.", "I prefer doing the task myself rather than explaining it to AI.", "agentic_work", { reverseCoded: true }),
+      validatedItem("STIAS_01", "יש לי ביטחון ב-{{primary_ai_tool}}.", "I am confident in {{primary_ai_tool}}.", EXTENT_7, "stias_trust", SOURCE_CITATIONS.stias, { fallbackText: { he: "יש לי ביטחון בכלי ה-AI העיקרי שבו אני משתמש/ת.", en: "I am confident in the AI tool I use most." } }),
+      validatedItem("STIAS_02", "{{primary_ai_tool}} הוא כלי אמין.", "{{primary_ai_tool}} is reliable.", EXTENT_7, "stias_trust", SOURCE_CITATIONS.stias, { fallbackText: { he: "כלי ה-AI העיקרי שבו אני משתמש/ת הוא אמין.", en: "The AI tool I use most is reliable." } }),
+      validatedItem("STIAS_03", "אני יכול/ה לסמוך על {{primary_ai_tool}}.", "I can trust {{primary_ai_tool}}.", EXTENT_7, "stias_trust", SOURCE_CITATIONS.stias, { fallbackText: { he: "אני יכול/ה לסמוך על כלי ה-AI העיקרי שבו אני משתמש/ת.", en: "I can trust the AI tool I use most." } }),
     ],
   },
+
+  /* ---- E2. Verification */
   {
-    key: "verification",
-    version: "2.0",
-    category: "ngg_measures",
-    name: { he: "התנהגות אימות", en: "Verification Behavior" },
-    description: { he: "האם ועד כמה תוצרי AI נבדקים לפני שימוש.", en: "Whether and how AI outputs are checked before use." },
-    sourceType: "ngg_measure",
-    researchStatus: "ngg_measure",
-    audience: "all",
-    recommendedCore: true,
-    longitudinalCore: true,
-    displayRules: IF_AI_USER,
-    questions: [
-      likert("ver_01", "אני בודק/ת עובדות ומספרים בתוצרי AI לפני שאני משתמש/ת בהם.", "I check facts and figures in AI outputs before using them.", "verification"),
-      likert("ver_02", "אני יודע/ת לזהות מתי תוצר AI אינו אמין.", "I can tell when an AI output is unreliable.", "verification"),
-      likert("ver_03", "כשאני מעביר/ה תוצר AI הלאה, אני מציין/ת שנעזרתי ב-AI.", "When I pass on an AI output, I note that AI was used.", "verification"),
-      likert("ver_04", "אני משתמש/ת בתוצרי AI כפי שהם, בלי לבדוק אותם.", "I use AI outputs as they are, without checking them.", "verification", { reverseCoded: true }),
-    ],
-  },
-  {
-    key: "org_enablement",
-    version: "2.0",
-    category: "ngg_measures",
-    name: { he: "אפשור ארגוני ל-AI", en: "Organizational AI Enablement" },
-    description: { he: "גישה ומשאבים, מדיניות, ידע ולמידה, תרבות ואסטרטגיה.", en: "Access & resources, policy & governance, knowledge & learning, culture and strategy." },
-    sourceType: "ngg_measure",
-    researchStatus: "ngg_measure",
-    audience: "all",
-    recommendedCore: true,
-    longitudinalCore: true,
-    questions: [
-      likert("en_access_01", "יש לי גישה לכלי ה-AI שאני צריך/ה לעבודתי.", "I have access to the AI tools I need for my work.", "enablement_access_resources"),
-      likert("en_access_02", "הארגון מקצה זמן ומשאבים ללמידה והתנסות ב-AI.", "The organization allocates time and resources for learning and experimenting with AI.", "enablement_access_resources"),
-      likert("en_access_03", "כשאני נתקל/ת בבעיה טכנית בכלי AI, יש למי לפנות.", "When I hit a technical problem with an AI tool, there is someone to turn to.", "enablement_access_resources"),
-      likert("en_policy_01", "ברור לי מה מותר ומה אסור לעשות עם AI בעבודה.", "It is clear to me what is and is not allowed with AI at work.", "enablement_policy_governance"),
-      likert("en_policy_02", "הארגון הגדיר כללים לשימוש במידע רגיש בכלי AI.", "The organization has rules for using sensitive information in AI tools.", "enablement_policy_governance"),
-      likert("en_policy_03", "אני יודע/ת מי אחראי/ת על נושא ה-AI בארגון.", "I know who is responsible for AI in the organization.", "enablement_policy_governance"),
-      likert("en_know_01", "קיבלתי הדרכה מספקת על שימוש ב-AI בעבודה.", "I have received sufficient training on using AI at work.", "enablement_knowledge_learning"),
-      likert("en_know_02", "אנחנו משתפים זה את זה בדרכים טובות לעבוד עם AI.", "We share good ways of working with AI with each other.", "enablement_knowledge_learning"),
-      likert("en_know_03", "יש בארגון מקום לשאול שאלות וללמוד על AI.", "There is a place in the organization to ask questions and learn about AI.", "enablement_knowledge_learning"),
-      likert("en_cult_01", "מקובל אצלנו לנסות דברים חדשים עם AI, גם אם לא תמיד מצליחים.", "It is accepted here to try new things with AI, even when they do not always work.", "enablement_culture"),
-      likert("en_cult_02", "שימוש ב-AI נתפס אצלנו כיתרון ולא כקיצור דרך.", "Using AI is seen here as an advantage, not as cutting corners.", "enablement_culture"),
-      likert("en_cult_03", "אני יכול/ה לומר בגלוי שנעזרתי ב-AI בלי לחשוש.", "I can openly say I used AI without worrying.", "enablement_culture"),
-      likert("en_strat_01", "ברור לי לאן הארגון רוצה להגיע עם AI.", "It is clear to me where the organization wants to go with AI.", "enablement_strategy"),
-      likert("en_strat_02", "ההנהלה מסבירה כיצד AI קשור ליעדי הארגון.", "Leadership explains how AI relates to the organization's goals.", "enablement_strategy"),
-      likert("en_strat_03", "יש תוכנית סדורה להטמעת AI ביחידה שלי.", "There is an orderly plan for adopting AI in my unit.", "enablement_strategy"),
-    ],
-  },
-  {
-    key: "manager_experience",
-    version: "1.2",
-    category: "ngg_measures",
-    name: { he: "חוויית העובד מול המנהל/ת", en: "Manager Experience" },
-    description: { he: "כיצד עובדים חווים את ניהול ה-AI של המנהל/ת הישיר/ה. מושווה לדיווח העצמי של מנהלים.", en: "How employees experience their direct manager's AI leadership. Compared with managers' self-report." },
-    sourceType: "ngg_measure",
-    researchStatus: "ngg_measure",
-    audience: "employees",
-    recommendedCore: true,
-    longitudinalCore: true,
-    displayRules: IF_EMPLOYEE,
-    questions: [
-      likert("mx_clarity", "המנהל/ת שלי מסביר/ה בבירור כיצד מצופה מאיתנו להשתמש ב-AI.", "My manager clearly communicates how we are expected to use AI.", "gap_ai_clarity"),
-      likert("mx_experiment", "המנהל/ת שלי מעודד/ת אותנו להתנסות ב-AI.", "My manager encourages us to experiment with AI.", "gap_experimentation"),
-      likert("mx_verify", "המנהל/ת שלי מצפה שנבדוק תוצרי AI לפני שימוש.", "My manager expects us to verify AI outputs before using them.", "gap_verification"),
-      likert("mx_judgment", "המנהל/ת שלי מבהיר/ה אילו החלטות נשארות בידי בני אדם.", "My manager makes clear which decisions stay with people.", "gap_human_judgment"),
-    ],
-  },
-  {
-    key: "agentic_management",
-    version: "2.1",
-    category: "ngg_measures",
-    name: { he: "ניהול אג׳נטי", en: "Agentic Management" },
-    description: { he: "ארבעה ממדים: ניהול עצמי, ניהול אנשים, ניהול AI וניהול מערכות אדם–AI. למנהלים בלבד.", en: "Four dimensions: Manage Self, Manage Humans, Manage AI and Manage Human–AI Systems. Managers only." },
-    sourceType: "ngg_measure",
-    researchStatus: "ngg_measure",
-    audience: "managers",
-    recommendedCore: true,
-    longitudinalCore: true,
-    displayRules: IF_MANAGER,
-    questions: [
-      likert("am_self_01", "אני מקדיש/ה זמן קבוע ללמידה של יכולות AI חדשות.", "I set aside regular time to learn new AI capabilities.", "agentic_manage_self"),
-      likert("am_self_02", "אני משתמש/ת ב-AI בעבודה הניהולית שלי, לא רק מדבר/ת על זה.", "I use AI in my own managerial work, not just talk about it.", "agentic_manage_self"),
-      likert("am_self_03", "אני יודע/ת לזהות מתי אני סומך/ת על AI יותר מדי.", "I can recognise when I rely on AI too much.", "agentic_manage_self"),
-      likert("am_humans_01", "אני מסביר/ה לצוות אילו משימות מתאימות ל-AI ואילו דורשות אדם.", "I explain to my team which tasks suit AI and which require a person.", "agentic_manage_humans"),
-      likert("am_humans_02", "אני מתייחס/ת לחששות של עובדים מ-AI באופן פתוח.", "I address employees' concerns about AI openly.", "agentic_manage_humans"),
-      likert("am_humans_03", "אני מתאים/ה את הציפיות מהצוות ליכולות ה-AI הזמינות.", "I adjust expectations of the team to the AI capabilities available.", "agentic_manage_humans"),
-      likert("am_ai_01", "אני מגדיר/ה ל-AI משימות ברורות עם קריטריוני הצלחה.", "I define clear tasks with success criteria for AI.", "agentic_manage_ai"),
-      likert("am_ai_02", "אני בודק/ת תוצרי AI לפני שהם משפיעים על החלטות.", "I review AI outputs before they influence decisions.", "agentic_manage_ai"),
-      likert("am_ai_03", "אני יודע/ת לאפיין מתי תוצר AI אינו טוב מספיק.", "I can tell when an AI output is not good enough.", "agentic_manage_ai"),
-      likert("am_sys_01", "עיצבתי בצוות לפחות זרימת עבודה אחת שמשלבת אנשים ו-AI עם חלוקת סמכויות ברורה.", "I have designed at least one team workflow that combines people and AI with clear decision rights.", "agentic_manage_systems"),
-      likert("am_sys_02", "בזרימות העבודה בצוות יש נקודת בקרה אנושית מוגדרת.", "Team workflows have a defined human review point.", "agentic_manage_systems"),
-      likert("am_sys_03", "אני מודד/ת האם שילוב ה-AI משפר את תוצאות הצוות.", "I measure whether integrating AI improves the team's outcomes.", "agentic_manage_systems"),
-      likert("mg_clarity", "אני מסביר/ה בבירור לצוות כיצד מצופה להשתמש ב-AI.", "I clearly communicate to my team how AI should be used.", "gap_ai_clarity"),
-      likert("mg_experiment", "אני מעודד/ת את הצוות להתנסות ב-AI.", "I encourage my team to experiment with AI.", "gap_experimentation"),
-      likert("mg_verify", "אני מצפה מהצוות לבדוק תוצרי AI לפני שימוש.", "I expect my team to verify AI outputs before using them.", "gap_verification"),
-      likert("mg_judgment", "אני מבהיר/ה לצוות אילו החלטות נשארות בידי בני אדם.", "I make clear to my team which decisions stay with people.", "gap_human_judgment"),
-    ],
-  },
-  {
-    key: "delegation_map",
+    key: "SECTION_VERIFICATION",
     version: "1.0",
     category: "ngg_measures",
-    name: { he: "מפת האצלה אדם–AI", en: "Human–AI Delegation Map" },
-    description: { he: "לכל פעילות ניהולית: מי מוביל היום — אדם, AI מסייע, AI מואצל או אוטונומי. למנהלים בלבד.", en: "For each management activity: who leads today — human, AI-assisted, AI-delegated or autonomous. Managers only." },
+    name: { he: "בקרה על תוצרי AI", en: "Verification behavior" },
+    description: { he: "מדד NGG: בדיקת עובדות, הימנעות מהסתמכות על מידע לא מאומת והתאמת רמת הבדיקה לסיכון.", en: "NGG measure: fact checking, not treating unverified output as certain, scaling checks to risk." },
+    intro: { he: "כאשר את/ה משתמש/ת בתוצר של AI לצורך עבודה משמעותית, באיזו תדירות את/ה עושה את הדברים הבאים?", en: "When you use an AI output for significant work, how often do you do the following?" },
+    sourceType: "ngg_measure",
+    researchStatus: "ngg_measure",
+    audience: "all",
+    recommendedCore: true,
+    longitudinalCore: true,
+    displayRules: AI_USER,
+    questions: [
+      scaleItem("VERIFY_01", "אני בודק/ת אם העובדות או הנתונים המרכזיים בתוצר נכונים לפני שאני מסתמך/ת עליו.", "I check whether the key facts or figures in the output are correct before I rely on it.", FREQ_5, "verification_behavior", { naOption: NA_WORK, longitudinalCore: true }),
+      scaleItem("VERIFY_02", "כאשר איני יכול/ה לאמת מידע משמעותי שה-AI מספק, אני נמנע/ת מלהתייחס אליו כאילו הוא ודאי.", "When I cannot verify significant information AI provides, I avoid treating it as certain.", FREQ_5, "verification_behavior", { naOption: NA_WORK, longitudinalCore: true }),
+      scaleItem("VERIFY_03", "אני מתאים/ה את רמת הבדיקה שאני מבצע/ת לרמת הסיכון או החשיבות של המשימה.", "I adjust how thoroughly I check to the risk or importance of the task.", FREQ_5, "verification_behavior", { naOption: NA_WORK, longitudinalCore: true }),
+    ],
+  },
+
+  /* ---- F. Organizational enablement */
+  {
+    key: "SECTION_ORG_ENABLEMENT",
+    version: "1.0",
+    category: "ngg_measures",
+    name: { he: "סביבת העבודה והטמעת AI בארגון", en: "Organizational AI enablement" },
+    description: { he: "מדד NGG בחמישה ממדים: גישה ומשאבים, מדיניות, למידה, תרבות ואסטרטגיה.", en: "NGG measure in five dimensions: access, policy, learning, culture and strategy." },
+    intro: {
+      he: "השאלות הבאות עוסקות בתנאים שהארגון מספק לשימוש יעיל ואחראי ב-AI.\n\nעד כמה את/ה מסכים/ה עם כל אחד מהמשפטים הבאים?",
+      en: "The following questions are about the conditions the organization provides for effective and responsible use of AI.\n\nTo what extent do you agree with each of the following statements?",
+    },
+    sourceType: "ngg_measure",
+    researchStatus: "ngg_measure",
+    audience: "all",
+    recommendedCore: true,
+    longitudinalCore: true,
+    questions: [
+      scaleItem("ORG_ACCESS_01", "יש לי גישה לכלי AI מאושרים שמתאימים לצורכי העבודה שלי.", "I have access to approved AI tools that suit my work needs.", AGREE_5, "enablement_access_resources", { naOption: NA_DONT_KNOW, longitudinalCore: true }),
+      scaleItem("ORG_ACCESS_02", "ניתן לשלב את כלי ה-AI בצורה יעילה עם המידע, המערכות או התהליכים שאני צריך/ה בעבודה.", "AI tools can be effectively combined with the information, systems or processes I need at work.", AGREE_5, "enablement_access_resources", { naOption: NA_DONT_KNOW, longitudinalCore: true }),
+      scaleItem("ORG_POLICY_01", "ברור לי איזה מידע מותר ואסור להזין לכלי AI במסגרת העבודה.", "It is clear to me which information may and may not be entered into AI tools at work.", AGREE_5, "enablement_policy_governance", { naOption: NA_DONT_KNOW, longitudinalCore: true }),
+      scaleItem("ORG_POLICY_02", "ברור לי באילו מצבים ניתן להסתמך על AI ובאילו מצבים נדרשת מעורבות או בדיקה אנושית.", "It is clear to me when AI can be relied on and when human involvement or review is required.", AGREE_5, "enablement_policy_governance", { naOption: NA_DONT_KNOW, longitudinalCore: true }),
+      scaleItem("ORG_LEARN_01", "הארגון מספק לי הזדמנויות מספקות ללמוד כיצד להשתמש ב-AI בעבודה.", "The organization gives me sufficient opportunities to learn how to use AI at work.", AGREE_5, "enablement_knowledge_learning", { naOption: NA_DONT_KNOW, longitudinalCore: true }),
+      scaleItem("ORG_LEARN_02", "כשאני זקוק/ה לעזרה בשימוש ב-AI, ברור לי למי או לאן ניתן לפנות.", "When I need help using AI, it is clear to me whom or where to turn to.", AGREE_5, "enablement_knowledge_learning", { naOption: NA_DONT_KNOW, longitudinalCore: true }),
+      scaleItem("ORG_CULTURE_01", "אני מרגיש/ה בטוח/ה להתנסות בדרכים חדשות להשתמש ב-AI בעבודה, גם אם לא כל ניסיון מצליח.", "I feel safe experimenting with new ways to use AI at work, even if not every attempt succeeds.", AGREE_5, "enablement_culture", { naOption: NA_DONT_KNOW, longitudinalCore: true }),
+      scaleItem("ORG_CULTURE_02", "עובדים בארגון משתפים זה עם זה דרכים אפקטיביות להשתמש ב-AI.", "Employees in the organization share effective ways of using AI with each other.", AGREE_5, "enablement_culture", { naOption: NA_DONT_KNOW, longitudinalCore: true }),
+      scaleItem("ORG_STRATEGY_01", "ברור לי כיצד השימוש ב-AI מתחבר למטרות של הארגון או היחידה שלי.", "It is clear to me how AI use connects to the goals of the organization or my unit.", AGREE_5, "enablement_strategy", { naOption: NA_DONT_KNOW, longitudinalCore: true }),
+      scaleItem("ORG_STRATEGY_02", "אני רואה מחויבות אמיתית מצד הארגון לשילוב אחראי ומועיל של AI.", "I see real commitment from the organization to responsible and beneficial use of AI.", AGREE_5, "enablement_strategy", { naOption: NA_DONT_KNOW, longitudinalCore: true }),
+    ],
+  },
+
+  /* ---- G. Manager experience */
+  {
+    key: "SECTION_MANAGER_EXPERIENCE",
+    version: "1.0",
+    category: "ngg_measures",
+    name: { he: "חוויית הניהול בעידן AI", en: "Manager experience in the AI era" },
+    description: { he: "איך הניהול הישיר תומך בעבודה עם AI. מושווה לדיווח העצמי של מנהלים בפריטים מקבילים.", en: "How direct management supports work with AI. Compared with managers' self-report on matching items." },
+    intro: { he: "השאלות הבאות עוסקות באופן שבו הניהול הישיר שלך תומך בעבודה עם AI.", en: "The following questions are about how your direct management supports working with AI." },
+    sourceType: "ngg_measure",
+    researchStatus: "ngg_measure",
+    audience: "all",
+    recommendedCore: true,
+    longitudinalCore: true,
+    questions: [
+      { canonicalId: "MEXP_SCREEN_01", type: "single_choice", content: { text: { he: "האם יש לך מנהל/ת ישיר/ה שאת/ה עובד/ת מולו/ה באופן שוטף?", en: "Do you have a direct manager you work with on a regular basis?" }, options: YES_NO, allowPreferNotToAnswer: false, wordingStatus: "final" } },
+      scaleItem("MEXP_01", "המנהל/ת שלי מבהיר/ה לצוות מה מצופה מאיתנו בנוגע לשימוש ב-AI.", "My manager makes clear to the team what is expected of us regarding AI use.", AGREE_5, "manager_experience", { naOption: NA_MANAGER_EXP, displayRules: HAS_MANAGER, longitudinalCore: true }),
+      scaleItem("MEXP_02", "המנהל/ת שלי עוזר/ת לנו לזהות משימות והזדמנויות שבהן AI יכול לשפר את העבודה.", "My manager helps us identify tasks and opportunities where AI can improve the work.", AGREE_5, "manager_experience", { naOption: NA_MANAGER_EXP, displayRules: HAS_MANAGER, longitudinalCore: true }),
+      scaleItem("MEXP_03", "המנהל/ת שלי יוצר/ת סביבה שבה אפשר להתנסות ב-AI, לשתף הצלחות וגם לדבר על כשלים.", "My manager creates an environment where we can experiment with AI, share successes and also talk about failures.", AGREE_5, "manager_experience", { naOption: NA_MANAGER_EXP, displayRules: HAS_MANAGER, longitudinalCore: true }),
+      scaleItem("MEXP_04", "כאשר AI משולב בתהליך עבודה של הצוות, ברור מי אחראי על כל שלב ועל התוצאה הסופית.", "When AI is part of a team process, it is clear who is responsible for each step and for the final outcome.", AGREE_5, "manager_experience", { naOption: NA_MANAGER_EXP, displayRules: HAS_MANAGER, longitudinalCore: true }),
+      scaleItem("MEXP_05", "המנהל/ת שלי מעודד/ת אותנו לבדוק, לאתגר ולבקר תוצרים של AI כשצריך.", "My manager encourages us to check, challenge and critique AI outputs when needed.", AGREE_5, "manager_experience", { naOption: NA_MANAGER_EXP, displayRules: HAS_MANAGER, longitudinalCore: true }),
+      scaleItem("MEXP_06", "המנהל/ת שלי מקפיד/ה שהשימוש ב-AI לא יחליף שיקול דעת, שיחה או יחס אנושי במקומות שבהם הם נדרשים.", "My manager makes sure AI use does not replace judgment, conversation or human care where they are needed.", AGREE_5, "manager_experience", { naOption: NA_MANAGER_EXP, displayRules: HAS_MANAGER, longitudinalCore: true }),
+    ],
+  },
+
+  /* ---- H. Agentic management */
+  {
+    key: "SECTION_AGENTIC_MANAGEMENT",
+    version: "1.0",
+    category: "ngg_measures",
+    name: { he: "המנהל בעידן AI", en: "Agentic management" },
+    description: { he: "מסגרת NGG ניסיונית בארבעה ממדים נפרדים: ניהול עצמי, ניהול אנשים, ניהול AI וניהול מערכות אדם–AI. למנהלים בלבד.", en: "Experimental NGG framework in four separate dimensions: Manage Self, Humans, AI and Human–AI Systems. Managers only." },
+    intro: {
+      he: "החלק הבא עוסק באופן שבו את/ה מנהל/ת עבודה בעידן שבו AI הופך לחלק מהעבודה האישית והצוותית.\n\nאין ציפייה שכל מנהל/ת כבר יעבוד/תעבוד עם סוכני AI או עם תהליכים אוטומטיים מתקדמים. חשוב לענות לפי מה שקורה בפועל כיום.\n\nכאשר הדבר רלוונטי לצוות או למשימה, באיזו תדירות את/ה פועל/ת כך?",
+      en: "This part is about how you manage work at a time when AI is becoming part of individual and team work.\n\nThere is no expectation that every manager already works with AI agents or advanced automated processes. Please answer according to what actually happens today.\n\nWhen relevant to the team or the task, how often do you act this way?",
+    },
     sourceType: "ngg_measure",
     researchStatus: "experimental",
     audience: "managers",
-    displayRules: IF_MANAGER,
+    recommendedCore: true,
+    longitudinalCore: true,
+    displayRules: IS_MANAGER,
+    questions: [
+      scaleItem("AM_SELF_01", "אני מתנסה באופן שוטף בדרכים חדשות שבהן AI יכול לשפר את העבודה שלי.", "I regularly experiment with new ways AI can improve my work.", FREQ_5, "agentic_manage_self", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_SELF_02", "אני יודע/ת לזהות גם מצבים שבהם לא נכון להסתמך על AI.", "I can also recognise situations where relying on AI is not appropriate.", FREQ_5, "agentic_manage_self", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_SELF_03", "כאשר AI משפיע על החלטה משמעותית שלי, אני בוחן/ת את ההמלצה ולא מקבל/ת אותה באופן אוטומטי.", "When AI influences a significant decision of mine, I examine the recommendation rather than accept it automatically.", FREQ_5, "agentic_manage_self", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_SELF_04", "אני משקיע/ה באופן מכוון בלמידה ובהתעדכנות ביכולות AI הרלוונטיות לעבודה שלי.", "I deliberately invest in learning and keeping up to date with AI capabilities relevant to my work.", FREQ_5, "agentic_manage_self", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_HUMANS_01", "אני מבהיר/ה לצוות מה אני מצפה מהם בנוגע לשימוש ב-AI.", "I make clear to my team what I expect of them regarding AI use.", FREQ_5, "agentic_manage_humans", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_HUMANS_02", "אני עוזר/ת לעובדים לזהות משימות והזדמנויות שבהן AI יכול לשפר את עבודתם.", "I help employees identify tasks and opportunities where AI can improve their work.", FREQ_5, "agentic_manage_humans", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_HUMANS_03", "אני יוצר/ת סביבה שבה עובדים יכולים להתנסות ב-AI, לשתף הצלחות וגם לדבר על כשלים.", "I create an environment where employees can experiment with AI, share successes and also talk about failures.", FREQ_5, "agentic_manage_humans", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_HUMANS_04", "אני מקפיד/ה שהשימוש ב-AI לא יחליף שיקול דעת, שיחה או יחס אנושי במקומות שבהם הם נדרשים.", "I make sure AI use does not replace judgment, conversation or human care where they are needed.", FREQ_5, "agentic_manage_humans", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_AI_01", "כשאני מעביר/ה עבודה ל-AI, אני מגדיר/ה מראש את המטרה ואת התוצאה הרצויה.", "When I hand work to AI, I define the goal and the desired outcome in advance.", FREQ_5, "agentic_manage_ai", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_AI_02", "אני מגדיר/ה מראש את הגבולות, המידע והפעולות שה-AI רשאי להשתמש בהם כחלק מהמשימה.", "I define in advance the boundaries, information and actions AI may use as part of the task.", FREQ_5, "agentic_manage_ai", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_AI_03", "אני קובע/ת נקודות שבהן נדרשת בדיקה או אישור אנושי לפני שהתהליך מתקדם.", "I set points where human review or approval is required before the process continues.", FREQ_5, "agentic_manage_ai", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_AI_04", "כאשר תוצר של AI אינו עומד בציפיות, אני בוחן/ת האם צריך לשנות את ההנחיה, את התהליך או את גבולות הפעולה — ולא רק לנסות שוב באותה דרך.", "When an AI output does not meet expectations, I examine whether to change the instruction, the process or the boundaries — not just try again the same way.", FREQ_5, "agentic_manage_ai", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_SYSTEMS_01", "אני בוחן/ת תהליכי עבודה שלמים, ולא רק משימות בודדות, כדי לזהות היכן נכון לשלב AI.", "I examine whole work processes, not only single tasks, to identify where AI should be integrated.", FREQ_5, "agentic_manage_systems", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_SYSTEMS_02", "בתהליך שמשלב עובדים ו-AI, אני מגדיר/ה בצורה ברורה מי אחראי על כל שלב ועל התוצאה הסופית.", "In a process combining employees and AI, I clearly define who is responsible for each step and for the final outcome.", FREQ_5, "agentic_manage_systems", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_SYSTEMS_03", "אני מגדיר/ה מראש מי מקבל את ההחלטה הסופית כאשר עובד/ת ו-AI מגיעים למסקנות שונות.", "I define in advance who makes the final decision when an employee and AI reach different conclusions.", FREQ_5, "agentic_manage_systems", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_SYSTEMS_04", "בתהליך משמעותי שמסתמך על AI, קיימת דרך ברורה להתמודד עם טעות, כשל או מצב חריג.", "In a significant process that relies on AI, there is a clear way to handle an error, failure or exception.", FREQ_5, "agentic_manage_systems", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_SYSTEMS_05", "אני בוחן/ת האם שילוב AI יוצר כפילויות, עומס או נקודות חיכוך חדשות בתהליך, ומבצע/ת התאמות בהתאם.", "I examine whether integrating AI creates duplication, workload or new friction in the process, and adjust accordingly.", FREQ_5, "agentic_manage_systems", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+      scaleItem("AM_SYSTEMS_06", "אני משתמש/ת בנתונים ובמשוב מהצוות כדי לשפר לאורך זמן את הדרך שבה AI משולב בעבודה.", "I use data and team feedback to improve over time how AI is integrated into the work.", FREQ_5, "agentic_manage_systems", { naOption: NA_AGENTIC_MGMT, longitudinalCore: true }),
+    ],
+  },
+
+  /* ---- I. Delegation map */
+  {
+    key: "SECTION_DELEGATION_MAP",
+    version: "1.0",
+    category: "ngg_measures",
+    name: { he: "מפת חלוקת העבודה אדם–AI", en: "Human–AI delegation map" },
+    description: { he: "אבחון NGG: איך מתבצעות היום 12 פעילויות ניהוליות, והיכן יש פוטנציאל להגדלת השימוש ב-AI. התפלגות, לא ציון בשלות.", en: "NGG diagnostic: how 12 management activities are done today and where AI use could grow. A distribution, not a maturity score." },
+    intro: {
+      he: "עכשיו נרצה להבין כיצד משימות ניהוליות שונות מתבצעות בפועל כיום.\n\nעבור כל פעילות, בחר/י את האפשרות שמתארת בצורה הטובה ביותר את המצב הנוכחי בצוות שלך.",
+      en: "Now we would like to understand how different management tasks are actually carried out today.\n\nFor each activity, choose the option that best describes the current situation in your team.",
+    },
+    sourceType: "ngg_measure",
+    researchStatus: "experimental",
+    audience: "managers",
+    displayRules: IS_MANAGER,
+    required: false,
     questions: [
       {
-        canonicalId: "dm_current",
-        type: "matrix",
-        content: {
-          text: { he: "כיצד מתבצעת כל פעילות היום?", en: "How is each activity carried out today?" },
-          wordingStatus: "illustrative",
-          matrixRows: [
-            { key: "planning", label: { he: "תכנון עבודה ותיעדוף", en: "Work planning and prioritisation" } },
-            { key: "reporting", label: { he: "דיווח וסיכומי סטטוס", en: "Reporting and status summaries" } },
-            { key: "feedback", label: { he: "משוב לעובדים", en: "Employee feedback" } },
-            { key: "decisions", label: { he: "קבלת החלטות תפעוליות", en: "Operational decisions" } },
-            { key: "communication", label: { he: "תקשורת שוטפת עם הצוות", en: "Day-to-day team communication" } },
-          ],
-          matrixColumns: [
-            { value: "human_led", label: { he: "אדם מוביל", en: "Human-led" } },
-            { value: "ai_assisted", label: { he: "AI מסייע", en: "AI-assisted" } },
-            { value: "ai_delegated", label: { he: "מואצל ל-AI", en: "AI-delegated" } },
-            { value: "autonomous", label: { he: "אוטונומי", en: "Autonomous" } },
-          ],
-        },
-      },
-      {
-        canonicalId: "dm_opportunity",
+        canonicalId: "DELEGATION_MAP",
         type: "matrix",
         required: false,
         content: {
-          text: { he: "ואיך היית רוצה שכל פעילות תתבצע בעוד שנה?", en: "And how would you like each activity to be carried out a year from now?" },
-          wordingStatus: "illustrative",
-          matrixRows: [
-            { key: "planning", label: { he: "תכנון עבודה ותיעדוף", en: "Work planning and prioritisation" } },
-            { key: "reporting", label: { he: "דיווח וסיכומי סטטוס", en: "Reporting and status summaries" } },
-            { key: "feedback", label: { he: "משוב לעובדים", en: "Employee feedback" } },
-            { key: "decisions", label: { he: "קבלת החלטות תפעוליות", en: "Operational decisions" } },
-            { key: "communication", label: { he: "תקשורת שוטפת עם הצוות", en: "Day-to-day team communication" } },
-          ],
+          text: { he: "כיצד מתבצעת כל פעילות בצוות שלך כיום?", en: "How is each activity carried out in your team today?" },
+          helpText: {
+            he: "בעיקר אנושי — האדם מבצע כמעט את כל הפעילות; AI אינו מעורב או משמש באופן זניח. AI מסייע — האדם מוביל את הפעילות וההחלטה; AI מסייע בחלקים נקודתיים. חלק משמעותי מואצל ל-AI — AI מבצע חלק משמעותי מהפעילות או מספר שלבים, והאדם בודק, מאשר או מתערב בנקודות מוגדרות. ברובה אוטומטית — הפעילות מתבצעת ברובה באמצעות AI או אוטומציה, עם התערבות אנושית בעיקר במקרים חריגים או בנקודות בקרה.",
+            en: "Mainly human — the person does almost all of the activity; AI is not involved or only marginally. AI assists — the person leads the activity and decision; AI helps with specific parts. Significant part delegated to AI — AI performs a significant part or several steps, and the person reviews, approves or intervenes at defined points. Mostly automated — the activity is carried out mostly by AI or automation, with human intervention mainly in exceptions or at control points.",
+          },
+          matrixRows: DELEGATION_ACTIVITIES.map(([key, he, en]) => ({ key, label: { he, en } })),
           matrixColumns: [
-            { value: "human_led", label: { he: "אדם מוביל", en: "Human-led" } },
-            { value: "ai_assisted", label: { he: "AI מסייע", en: "AI-assisted" } },
-            { value: "ai_delegated", label: { he: "מואצל ל-AI", en: "AI-delegated" } },
-            { value: "autonomous", label: { he: "אוטונומי", en: "Autonomous" } },
+            opt("human_led", "בעיקר אנושי", "Mainly human"),
+            opt("ai_assisted", "AI מסייע", "AI assists"),
+            opt("ai_delegated", "חלק משמעותי מואצל ל-AI", "Significant part delegated to AI"),
+            opt("ai_autonomous", "ברובה אוטומטית", "Mostly automated"),
+            opt("not_relevant", "לא רלוונטי לתפקיד / לצוות שלי", "Not relevant to my role / team"),
           ],
+          allowPreferNotToAnswer: false,
+          wordingStatus: "final",
+        },
+      },
+      {
+        canonicalId: "DELEGATION_OPPORTUNITY",
+        type: "multi_select",
+        required: false,
+        content: {
+          text: { he: "באילו מהתחומים הבאים לדעתך יש פוטנציאל משמעותי להגדיל את השימוש ב-AI במהלך 12 החודשים הקרובים?", en: "In which of these areas do you think there is significant potential to increase AI use over the next 12 months?" },
+          options: [
+            ...DELEGATION_ACTIVITIES.map(([key, he, en]) => opt(key, he, en)),
+            opt("none_identified", "לא מזהה כרגע תחום כזה", "I do not currently see such an area", { exclusive: true }),
+            opt("unsure", "לא בטוח/ה", "Not sure", { exclusive: true }),
+          ],
+          allowPreferNotToAnswer: false,
+          wordingStatus: "final",
         },
       },
     ],
   },
+
+  /* ---- J. Outcomes and barriers */
   {
-    key: "impact_productivity",
-    version: "1.1",
-    category: "outcomes",
-    name: { he: "השפעה ופריון", en: "Impact & Productivity" },
-    description: { he: "השפעת ה-AI הנתפסת על איכות, מהירות ועומס.", en: "Perceived impact of AI on quality, speed and workload." },
-    sourceType: "ngg_measure",
-    researchStatus: "ngg_measure",
-    audience: "all",
-    longitudinalCore: true,
-    displayRules: IF_AI_USER,
-    questions: [
-      likert("imp_01", "AI חוסך לי זמן משמעותי בשבוע עבודה רגיל.", "AI saves me significant time in a regular work week.", "impact"),
-      likert("imp_02", "AI משפר את איכות התוצרים שלי.", "AI improves the quality of my work.", "impact"),
-      likert("imp_03", "בזכות AI אני מספיק/ה לעסוק במשימות חשובות יותר.", "Thanks to AI I get to work on more important tasks.", "impact"),
-      likert("imp_04", "AI מוסיף לי עומס ולא מוריד.", "AI adds to my workload rather than reducing it.", "impact", { reverseCoded: true }),
-    ],
-  },
-  {
-    key: "barriers",
+    key: "SECTION_OUTCOMES_BARRIERS",
     version: "1.0",
     category: "outcomes",
-    name: { he: "חסמים", en: "Barriers" },
-    description: { he: "מה מונע שימוש רחב או עמוק יותר ב-AI.", en: "What prevents broader or deeper AI use." },
+    name: { he: "השפעה, חסמים והזדמנויות", en: "Impact, barriers and needs" },
+    description: { he: "השפעה נתפסת על איכות, זמן והרחבת יכולות; חסמים מרכזיים ומה היה עוזר.", en: "Perceived impact on quality, time and capability; main barriers and what would help." },
     sourceType: "ngg_measure",
     researchStatus: "ngg_measure",
     audience: "all",
     recommendedCore: true,
+    longitudinalCore: true,
     questions: [
       {
-        canonicalId: "barriers_main",
+        canonicalId: "IMPACT_QUALITY_01",
+        type: "single_choice",
+        metricId: "impact_quality",
+        content: {
+          text: { he: "בהשוואה לעבודה ללא AI, איזו השפעה יש כיום לשימוש ב-AI על איכות התוצרים שלך?", en: "Compared with working without AI, what effect does AI use currently have on the quality of your outputs?" },
+          options: [
+            opt("harms_significantly", "פוגע משמעותית באיכות", "Significantly harms quality", { score: 1 }),
+            opt("harms_slightly", "פוגע מעט באיכות", "Slightly harms quality", { score: 2 }),
+            opt("no_change", "ללא שינוי משמעותי", "No significant change", { score: 3 }),
+            opt("improves_slightly", "משפר מעט את האיכות", "Slightly improves quality", { score: 4 }),
+            opt("improves_significantly", "משפר משמעותית את האיכות", "Significantly improves quality", { score: 5 }),
+            opt("hard_to_assess", "קשה לי להעריך", "Hard for me to assess"),
+          ],
+          displayRules: AI_USER,
+          allowPreferNotToAnswer: false,
+          longitudinalCore: true,
+          wordingStatus: "final",
+        },
+      },
+      {
+        canonicalId: "IMPACT_TIME_01",
+        type: "single_choice",
+        metricId: "impact_time",
+        content: {
+          text: { he: "בהשוואה לעבודה ללא AI, איזו השפעה יש כיום לשימוש ב-AI על הזמן שנדרש לך לבצע משימות?", en: "Compared with working without AI, what effect does AI use currently have on the time you need to complete tasks?" },
+          options: [
+            opt("increases_significantly", "מגדיל משמעותית את הזמן", "Significantly increases the time", { score: 1 }),
+            opt("increases_slightly", "מגדיל מעט את הזמן", "Slightly increases the time", { score: 2 }),
+            opt("no_change", "ללא שינוי משמעותי", "No significant change", { score: 3 }),
+            opt("reduces_slightly", "מקצר מעט את הזמן", "Slightly reduces the time", { score: 4 }),
+            opt("reduces_significantly", "מקצר משמעותית את הזמן", "Significantly reduces the time", { score: 5 }),
+            opt("hard_to_assess", "קשה לי להעריך", "Hard for me to assess"),
+          ],
+          displayRules: AI_USER,
+          allowPreferNotToAnswer: false,
+          longitudinalCore: true,
+          wordingStatus: "final",
+        },
+      },
+      scaleItem("IMPACT_EXPANSION_01", "באיזו מידה AI מאפשר לך לבצע דברים שלא היית מבצע/ת קודם, או לבצע אותם ברמה שלא הייתה מעשית עבורך קודם?", "To what extent does AI enable you to do things you would not have done before, or to do them at a level that was not practical for you before?", EXTENT_5_EXPANSION, "impact_expansion", { naOption: { he: "קשה לי להעריך", en: "Hard for me to assess" }, displayRules: AI_USER, longitudinalCore: true }),
+      {
+        canonicalId: "BARRIER_01",
         type: "multi_select",
         content: {
-          text: { he: "מה הכי מגביל את השימוש שלך ב-AI בעבודה?", en: "What most limits your use of AI at work?" },
-          helpText: { he: "בחרו עד שלושה.", en: "Choose up to three." },
+          text: { he: "מהם החסמים המרכזיים שמונעים ממך להשתמש ב-AI בצורה יעילה יותר בעבודה?", en: "What are the main barriers preventing you from using AI more effectively at work?" },
           options: [
-            { value: "no_access", label: { he: "אין גישה לכלים מתאימים", en: "No access to suitable tools" } },
-            { value: "no_time", label: { he: "אין זמן ללמוד", en: "No time to learn" } },
-            { value: "unclear_policy", label: { he: "לא ברור מה מותר", en: "Unclear what is allowed" } },
-            { value: "data_concerns", label: { he: "חשש לאבטחת מידע ופרטיות", en: "Data security and privacy concerns" } },
-            { value: "quality", label: { he: "התוצרים לא מספיק טובים", en: "Outputs are not good enough" } },
-            { value: "skills", label: { he: "חסרות לי מיומנויות", en: "I lack the skills" } },
-            { value: "no_need", label: { he: "אין לי צורך בעבודה שלי", en: "No need in my work" } },
-            { value: "manager", label: { he: "המנהל/ת לא מעודד/ת", en: "My manager does not encourage it" } },
-            { value: "job_fear", label: { he: "חשש להשלכות על התפקיד", en: "Concern about consequences for my role" } },
+            opt("unclear_value", "לא ברור לי באילו משימות AI יכול לתת לי ערך", "It is unclear to me in which tasks AI can add value"),
+            opt("skills", "אין לי מספיק ידע או מיומנות", "I lack sufficient knowledge or skill"),
+            opt("time", "אין לי מספיק זמן ללמוד ולהתנסות", "I do not have enough time to learn and experiment"),
+            opt("access", "אין לי גישה לכלים המתאימים", "I do not have access to suitable tools"),
+            opt("unclear_policy", "לא ברור לי אילו כלים או שימושים מותרים בארגון", "It is unclear which tools or uses are allowed in the organization"),
+            opt("privacy", "יש לי חששות בנוגע לפרטיות או אבטחת מידע", "I have privacy or information-security concerns"),
+            opt("quality_trust", "קשה לי לסמוך על איכות התוצרים", "I find it hard to trust the quality of the outputs"),
+            opt("not_connected", "הכלים אינם מחוברים למידע או למערכות שאני צריך/ה", "The tools are not connected to the information or systems I need"),
+            opt("management_support", "אין מספיק תמיכה או הכוונה ניהולית", "There is not enough management support or guidance"),
+            opt("role_concern", "אני חושש/ת מההשפעה של AI על התפקיד שלי", "I am concerned about the impact of AI on my role"),
+            opt("not_suitable", "AI אינו מתאים לחלק משמעותי מהעבודה שלי", "AI does not suit a significant part of my work"),
+            opt("technical", "מגבלות טכניות או ביצועים של הכלים", "Technical limitations or tool performance"),
+            opt("other", "אחר", "Other"),
+            opt("no_barrier", "אין כרגע חסם משמעותי", "There is currently no significant barrier", { exclusive: true }),
           ],
+          allowPreferNotToAnswer: false,
+          wordingStatus: "final",
+        },
+      },
+      {
+        canonicalId: "ENABLEMENT_NEED_01",
+        type: "multi_select",
+        content: {
+          text: { he: "מה היה עוזר לך יותר מכל להשתמש ב-AI בצורה אפקטיבית יותר בעבודה?", en: "What would help you most to use AI more effectively at work?" },
+          options: [
+            opt("better_tools", "גישה לכלי AI טובים או מתאימים יותר", "Access to better or more suitable AI tools"),
+            opt("data_integration", "חיבור טוב יותר לנתונים ולמערכות הארגון", "Better connection to organizational data and systems"),
+            opt("basic_training", "הדרכה בסיסית", "Basic training"),
+            opt("advanced_training", "הדרכה מתקדמת ומעשית", "Advanced, practical training"),
+            opt("internal_examples", "דוגמאות ו-best practices מתוך הארגון", "Examples and best practices from within the organization"),
+            opt("dedicated_time", "זמן ייעודי להתנסות ולמידה", "Dedicated time to experiment and learn"),
+            opt("coaching", "ליווי אישי או AI coach", "Personal guidance or an AI coach"),
+            opt("clear_policy", "מדיניות וכללים ברורים יותר", "Clearer policy and rules"),
+            opt("manager_support", "תמיכה והכוונה מהמנהל/ת", "Support and guidance from my manager"),
+            opt("defined_processes", "תהליכי עבודה ברורים שמשלבים AI", "Clear work processes that integrate AI"),
+            opt("other", "אחר", "Other"),
+          ],
+          maxSelections: 3,
+          allowPreferNotToAnswer: false,
+          wordingStatus: "final",
         },
       },
     ],
   },
+
+  /* ---- K. Open text */
   {
-    key: "opportunities",
-    version: "1.0",
-    category: "outcomes",
-    name: { he: "הזדמנויות", en: "Opportunities" },
-    description: { he: "היכן העובדים רוצים להיעזר ב-AI בחצי השנה הקרובה.", en: "Where employees want AI help in the next six months." },
-    sourceType: "ngg_measure",
-    researchStatus: "ngg_measure",
-    audience: "all",
-    questions: [
-      {
-        canonicalId: "opp_areas",
-        type: "multi_select",
-        content: {
-          text: { he: "באילו תחומים הכי היית רוצה להיעזר ב-AI בחצי השנה הקרובה?", en: "In which areas would you most like AI help in the next six months?" },
-          helpText: { he: "אפשר לבחור כמה תשובות.", en: "Choose all that apply." },
-          options: [
-            { value: "writing", label: { he: "כתיבה וניסוח", en: "Writing and editing" } },
-            { value: "analysis", label: { he: "ניתוח נתונים", en: "Data analysis" } },
-            { value: "summaries", label: { he: "סיכום מסמכים ופגישות", en: "Summarising documents and meetings" } },
-            { value: "presentations", label: { he: "הכנת מצגות", en: "Preparing presentations" } },
-            { value: "automation", label: { he: "אוטומציה של תהליכים", en: "Process automation" } },
-            { value: "research", label: { he: "מחקר והכנה", en: "Research and preparation" } },
-            { value: "decisions", label: { he: "תמיכה בקבלת החלטות", en: "Decision support" } },
-            { value: "other", label: { he: "אחר", en: "Other" } },
-          ],
-        },
-      },
-    ],
-  },
-  {
-    key: "open_questions",
+    key: "SECTION_OPEN_TEXT",
     version: "1.0",
     category: "qualitative",
-    name: { he: "שאלות פתוחות", en: "Open Questions" },
-    description: { he: "תשובות חופשיות. מנותחות תמטית לאחר הסרת פרטים מזהים.", en: "Free-text answers. Analysed thematically after removing identifying details." },
+    name: { he: "שאלות פתוחות", en: "Open questions" },
+    description: { he: "תשובות חופשיות, לא חובה. מנותחות תמטית לאחר הסרת פרטים מזהים.", en: "Optional free text. Analysed thematically after removing identifying details." },
+    intro: { he: "לסיום, נשמח לשמוע ממך במילים שלך. אין חובה לענות על שתי השאלות.", en: "Finally, we would like to hear from you in your own words. Answering is optional." },
     sourceType: "ngg_measure",
     researchStatus: "ngg_measure",
     audience: "all",
+    required: false,
     questions: [
-      { canonicalId: "open_helped", type: "long_text", required: false, content: { text: { he: "מה היה הדבר האחד שהכי עזר לך להשתמש ב-AI בעבודה?", en: "What is the one thing that most helped you use AI at work?" } } },
-      { canonicalId: "open_change", type: "long_text", required: false, content: { text: { he: "מה דבר אחד שהיית משנה באופן שבו הארגון מטמיע AI?", en: "What is one thing you would change about how the organization adopts AI?" } } },
+      { canonicalId: "OPEN_01", type: "long_text", required: false, content: { text: { he: "אם היית יכול/ה לשנות דבר אחד בדרך שבה AI משולב כיום בעבודה שלך או בצוות שלך — מה היית משנה?", en: "If you could change one thing about how AI is integrated into your work or your team today — what would it be?" }, allowPreferNotToAnswer: false, wordingStatus: "final" } },
+      { canonicalId: "OPEN_02", type: "long_text", required: false, content: { text: { he: "האם יש משימה או תהליך בעבודה שלך שלדעתך AI יכול לשנות באופן משמעותי, אבל עדיין לא נעשה בו שימוש כזה? אם כן, ספר/י לנו בקצרה.", en: "Is there a task or process in your work that you think AI could significantly change, but where it is not yet used that way? If so, tell us briefly." }, allowPreferNotToAnswer: false, wordingStatus: "final" } },
     ],
   },
+
+  /* ---- Client custom */
   {
-    key: "client_questions",
+    key: "SECTION_CLIENT_CUSTOM",
     version: "1.0",
     category: "custom",
-    name: { he: "שאלות לקוח", en: "Client Questions" },
+    name: { he: "שאלות לקוח", en: "Client questions" },
     description: { he: "שאלות ייעודיות לפרויקט. לא נכללות במדדי הליבה.", en: "Project-specific questions. Not part of the core metrics." },
     sourceType: "client_custom",
     researchStatus: "custom",
@@ -600,70 +833,100 @@ export const LIBRARY_SECTIONS: LibrarySection[] = [
 
 /* --------------------------------------------------------- metric library */
 
-const items = (prefix: string, ids: string[]) => ids.map((id) => `${prefix}${id}`);
+const range = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => `${prefix}${String(i + 1).padStart(2, "0")}`);
+const GAIL_BOS = range("GAIL_BOS_", 3);
+const GAIL_PE = range("GAIL_PE_", 3);
+const GAIL_QE = range("GAIL_QE_", 3);
+const GAIL_IA = range("GAIL_IA_", 3);
+const GAIL_EC = range("GAIL_EC_", 5);
+const AW_ASSIST = ["AW_ASSIST_01"];
+const AW_COLLAB = range("AW_COLLAB_", 2);
+const AW_DELEGATE = range("AW_DELEGATE_", 2);
+const AW_ORCH = range("AW_ORCH_", 3);
+
+type MetricInput = Omit<MetricConfig, "reverseCodedIds" | "minAnsweredRatio" | "coreProfile" | "audience" | "neutralDirection"> & Partial<Pick<MetricConfig, "reverseCodedIds" | "minAnsweredRatio" | "coreProfile" | "audience" | "neutralDirection">>;
+const m = (input: MetricInput): MetricConfig => ({ reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all", neutralDirection: false, ...input });
+const scaleMetric = (id: string, he: string, en: string, items: string[], extra: Partial<MetricConfig> & { group: MetricConfig["group"]; sourceType: MetricConfig["sourceType"] }, scale: [number, number] = [1, 5]) =>
+  m({ id, name: { he, en }, kind: "scale_mean", scaleMin: scale[0], scaleMax: scale[1], itemCanonicalIds: items, ...extra });
 
 export const METRIC_DEFINITIONS: MetricConfig[] = [
-  // ---- core profile
-  { id: "ai_usage", name: { he: "שימוש ב-AI", en: "AI Usage" }, kind: "scale_mean", group: "core", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["ctx_ai_use_30d", "usage_routine"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: true, audience: "all", description: { he: "תדירות השימוש ומידת ההטמעה בשגרה.", en: "Usage frequency and integration into routine." } },
-  { id: "ai_literacy", name: { he: "אוריינות AI", en: "AI Literacy" }, kind: "scale_mean", group: "core", sourceType: "validated", scaleMin: 1, scaleMax: 5, itemCanonicalIds: items("ai_lit_", ["basic_operation_01", "basic_operation_02", "prompting_01", "prompting_02", "evaluation_01", "evaluation_02", "innovative_01", "innovative_02", "ethics_01", "ethics_02"]), reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: true, audience: "all", description: { he: "סולם מתוקף בחמישה ממדים.", en: "Validated scale with five dimensions." } },
-  { id: "agentic_work", name: { he: "עבודה אג׳נטית", en: "Agentic Work" }, kind: "scale_mean", group: "core", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["agw_01", "agw_02", "agw_03", "agw_04", "agw_05", "agw_06"], reverseCodedIds: ["agw_06"], minAnsweredRatio: 0.5, coreProfile: true, audience: "all" },
-  { id: "verification", name: { he: "התנהגות אימות", en: "Verification" }, kind: "scale_mean", group: "core", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["ver_01", "ver_02", "ver_03", "ver_04"], reverseCodedIds: ["ver_04"], minAnsweredRatio: 0.5, coreProfile: true, audience: "all" },
-  { id: "org_enablement", name: { he: "אפשור ארגוני", en: "Organizational Enablement" }, kind: "scale_mean", group: "core", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["en_access_01", "en_access_02", "en_access_03", "en_policy_01", "en_policy_02", "en_policy_03", "en_know_01", "en_know_02", "en_know_03", "en_cult_01", "en_cult_02", "en_cult_03", "en_strat_01", "en_strat_02", "en_strat_03"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: true, audience: "all" },
-  { id: "agentic_management", name: { he: "ניהול אג׳נטי", en: "Agentic Management" }, kind: "scale_mean", group: "core", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["am_self_01", "am_self_02", "am_self_03", "am_humans_01", "am_humans_02", "am_humans_03", "am_ai_01", "am_ai_02", "am_ai_03", "am_sys_01", "am_sys_02", "am_sys_03"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: true, audience: "managers", description: { he: "ממוצע ארבעת הממדים. מוצג כפרופיל, לא כציון יחיד.", en: "Mean of the four dimensions. Presented as a profile, not a single score." } },
-  // ---- AI literacy dimensions
-  { id: "ai_literacy_basic_operation", name: { he: "הפעלה בסיסית", en: "Basic Operation" }, kind: "scale_mean", group: "ai_literacy_dimension", parentId: "ai_literacy", sourceType: "validated", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["ai_lit_basic_operation_01", "ai_lit_basic_operation_02"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
-  { id: "ai_literacy_prompting", name: { he: "ניסוח בקשות", en: "Prompting" }, kind: "scale_mean", group: "ai_literacy_dimension", parentId: "ai_literacy", sourceType: "validated", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["ai_lit_prompting_01", "ai_lit_prompting_02"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
-  { id: "ai_literacy_evaluation", name: { he: "הערכת תוצרים", en: "Evaluation" }, kind: "scale_mean", group: "ai_literacy_dimension", parentId: "ai_literacy", sourceType: "validated", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["ai_lit_evaluation_01", "ai_lit_evaluation_02"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
-  { id: "ai_literacy_innovative_application", name: { he: "יישום חדשני", en: "Innovative Application" }, kind: "scale_mean", group: "ai_literacy_dimension", parentId: "ai_literacy", sourceType: "validated", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["ai_lit_innovative_01", "ai_lit_innovative_02"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
-  { id: "ai_literacy_ethics_compliance", name: { he: "אתיקה וציות", en: "Ethics & Compliance" }, kind: "scale_mean", group: "ai_literacy_dimension", parentId: "ai_literacy", sourceType: "validated", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["ai_lit_ethics_01", "ai_lit_ethics_02"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
+  // ---- core profile (no single maturity score)
+  scaleMetric("ai_usage_frequency", "תדירות שימוש ב-AI", "AI usage frequency", ["USE_01"], { group: "core", sourceType: "ngg_measure", coreProfile: true, description: { he: "תדירות התנהגותית בסקאלה 1–6, מ\"לא השתמשתי כלל\" ועד \"מספר פעמים ביום\".", en: "Behavioral frequency on a 1–6 scale, from \"did not use\" to \"several times a day\"." } }, [1, 6]),
+  scaleMetric("gail_total", "אוריינות AI (GAIL)", "AI literacy (GAIL)", [...GAIL_BOS, ...GAIL_PE, ...GAIL_QE, ...GAIL_IA, ...GAIL_EC], { group: "core", sourceType: "validated", coreProfile: true, minAnsweredRatio: 1, description: { he: "ממוצע 17 פריטי GAIL בסקאלה 1–7.", en: "Mean of the 17 GAIL items on a 1–7 scale." } }, [1, 7]),
+  scaleMetric("agentic_work", "עבודה אג׳נטית", "Agentic work", [...AW_ASSIST, ...AW_COLLAB, ...AW_DELEGATE, ...AW_ORCH], { group: "core", sourceType: "ngg_measure", coreProfile: true, description: { he: "פרופיל התנהגותי של NGG. אינו מדרג בשלות.", en: "NGG behavioral profile. Not a maturity ranking." } }),
+  scaleMetric("verification_behavior", "התנהגות אימות", "Verification behavior", range("VERIFY_", 3), { group: "core", sourceType: "ngg_measure", coreProfile: true }),
+  scaleMetric("organizational_ai_enablement", "אפשור ארגוני", "Organizational enablement", ["ORG_ACCESS_01", "ORG_ACCESS_02", "ORG_POLICY_01", "ORG_POLICY_02", "ORG_LEARN_01", "ORG_LEARN_02", "ORG_CULTURE_01", "ORG_CULTURE_02", "ORG_STRATEGY_01", "ORG_STRATEGY_02"], { group: "core", sourceType: "ngg_measure", coreProfile: true, description: { he: "ממוצע מסכם; חמשת הממדים נשארים גלויים.", en: "Summary mean; the five dimensions remain visible." } }),
+  // ---- adoption
+  m({ id: "ai_daily_use_share", name: { he: "שימוש כמעט יומי", en: "Near-daily use" }, kind: "share", group: "adoption", sourceType: "ngg_measure", scaleMin: 0, scaleMax: 100, itemCanonicalIds: ["USE_01"], positiveValues: ["almost_daily", "several_daily"], minAnsweredRatio: 1 }),
+  m({ id: "ai_nonuser_share", name: { he: "לא השתמשו כלל", en: "Non-users" }, kind: "share", group: "adoption", sourceType: "ngg_measure", scaleMin: 0, scaleMax: 100, itemCanonicalIds: ["USE_01"], positiveValues: ["none"], minAnsweredRatio: 1, neutralDirection: true }),
+  m({ id: "use_case_breadth", name: { he: "רוחב השימושים", en: "Use-case breadth" }, kind: "breadth", group: "adoption", sourceType: "ngg_measure", scaleMin: 0, scaleMax: 14, itemCanonicalIds: ["USE_04"], minAnsweredRatio: 1, description: { he: "מספר סוגי משימות ממוצע למשיב. ספירה, לא סולם פסיכומטרי.", en: "Average number of task types per respondent. A count, not a psychometric scale." } }),
+  scaleMetric("ai_work_integration", "שילוב בשגרת העבודה", "Integration into routine", ["USE_05"], { group: "adoption", sourceType: "ngg_measure" }),
+  scaleMetric("tool_access", "גישה לכלים", "Tool access", ["USE_07"], { group: "adoption", sourceType: "ngg_measure" }),
+  // ---- GAIL dimensions
+  scaleMetric("gail_basic_operation", "מיומנויות תפעול בסיסיות", "Basic operational skills", GAIL_BOS, { group: "ai_literacy_dimension", parentId: "gail_total", sourceType: "validated", minAnsweredRatio: 1 }, [1, 7]),
+  scaleMetric("gail_prompt_engineering", "ניסוח ושיפור הנחיות", "Prompt engineering", GAIL_PE, { group: "ai_literacy_dimension", parentId: "gail_total", sourceType: "validated", minAnsweredRatio: 1 }, [1, 7]),
+  scaleMetric("gail_quality_evaluation", "הערכת איכות התוצרים", "Quality evaluation", GAIL_QE, { group: "ai_literacy_dimension", parentId: "gail_total", sourceType: "validated", minAnsweredRatio: 1 }, [1, 7]),
+  scaleMetric("gail_innovative_application", "יישום חדשני", "Innovative application", GAIL_IA, { group: "ai_literacy_dimension", parentId: "gail_total", sourceType: "validated", minAnsweredRatio: 1 }, [1, 7]),
+  scaleMetric("gail_ethics_compliance", "אתיקה וציות", "Ethics & compliance", GAIL_EC, { group: "ai_literacy_dimension", parentId: "gail_total", sourceType: "validated", minAnsweredRatio: 1 }, [1, 7]),
+  // ---- agentic work dimensions and funnel
+  scaleMetric("aw_assist", "סיוע", "Assist", AW_ASSIST, { group: "agentic_work_dimension", parentId: "agentic_work", sourceType: "ngg_measure" }),
+  scaleMetric("aw_collaborate", "שיתוף", "Collaborate", AW_COLLAB, { group: "agentic_work_dimension", parentId: "agentic_work", sourceType: "ngg_measure" }),
+  scaleMetric("aw_delegate", "האצלה", "Delegate", AW_DELEGATE, { group: "agentic_work_dimension", parentId: "agentic_work", sourceType: "ngg_measure" }),
+  scaleMetric("aw_orchestrate", "תזמור", "Orchestrate", AW_ORCH, { group: "agentic_work_dimension", parentId: "agentic_work", sourceType: "ngg_measure" }),
+  ...([
+    ["aw_funnel_assist", "סיוע", "Assist", AW_ASSIST],
+    ["aw_funnel_collaborate", "שיתוף", "Collaborate", AW_COLLAB],
+    ["aw_funnel_delegate", "האצלה", "Delegate", AW_DELEGATE],
+    ["aw_funnel_orchestrate", "תזמור", "Orchestrate", AW_ORCH],
+  ] as Array<[string, string, string, string[]]>).map(([id, he, en, items]) =>
+    m({ id, name: { he, en }, kind: "threshold_share", threshold: 4, group: "adoption_funnel", sourceType: "ngg_measure", scaleMin: 0, scaleMax: 100, itemCanonicalIds: items, description: { he: "שיעור המשתמשים שפועלים כך \"לעיתים קרובות\" או \"כמעט תמיד\".", en: "Share of users who act this way \"often\" or \"almost always\"." } }),
+  ),
+  // ---- trust (higher is not automatically better)
+  scaleMetric("stias_trust", "אמון בכלי ה-AI (S-TIAS)", "Trust in the AI tool (S-TIAS)", range("STIAS_", 3), { group: "trust", sourceType: "validated", minAnsweredRatio: 1, neutralDirection: true, description: { he: "ממוצע 3 פריטים בסקאלה 1–7. אמון גבוה אינו בהכרח טוב יותר; יש לפרש לצד התנהגות האימות.", en: "Mean of 3 items on 1–7. Higher trust is not automatically better; read alongside verification behavior." } }, [1, 7]),
   // ---- enablement dimensions
-  { id: "enablement_access_resources", name: { he: "גישה ומשאבים", en: "Access & Resources" }, kind: "scale_mean", group: "enablement_dimension", parentId: "org_enablement", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["en_access_01", "en_access_02", "en_access_03"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
-  { id: "enablement_policy_governance", name: { he: "מדיניות וממשל", en: "Policy & Governance" }, kind: "scale_mean", group: "enablement_dimension", parentId: "org_enablement", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["en_policy_01", "en_policy_02", "en_policy_03"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
-  { id: "enablement_knowledge_learning", name: { he: "ידע ולמידה", en: "Knowledge & Learning" }, kind: "scale_mean", group: "enablement_dimension", parentId: "org_enablement", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["en_know_01", "en_know_02", "en_know_03"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
-  { id: "enablement_culture", name: { he: "תרבות", en: "Culture" }, kind: "scale_mean", group: "enablement_dimension", parentId: "org_enablement", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["en_cult_01", "en_cult_02", "en_cult_03"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
-  { id: "enablement_strategy", name: { he: "אסטרטגיה", en: "Strategy" }, kind: "scale_mean", group: "enablement_dimension", parentId: "org_enablement", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["en_strat_01", "en_strat_02", "en_strat_03"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
-  // ---- agentic management dimensions (never collapsed by default)
-  { id: "agentic_manage_self", name: { he: "ניהול עצמי", en: "Manage Self" }, kind: "scale_mean", group: "agentic_management_dimension", parentId: "agentic_management", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["am_self_01", "am_self_02", "am_self_03"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "managers" },
-  { id: "agentic_manage_humans", name: { he: "ניהול אנשים", en: "Manage Humans" }, kind: "scale_mean", group: "agentic_management_dimension", parentId: "agentic_management", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["am_humans_01", "am_humans_02", "am_humans_03"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "managers" },
-  { id: "agentic_manage_ai", name: { he: "ניהול AI", en: "Manage AI" }, kind: "scale_mean", group: "agentic_management_dimension", parentId: "agentic_management", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["am_ai_01", "am_ai_02", "am_ai_03"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "managers" },
-  { id: "agentic_manage_systems", name: { he: "ניהול מערכות אדם–AI", en: "Manage Human–AI Systems" }, kind: "scale_mean", group: "agentic_management_dimension", parentId: "agentic_management", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["am_sys_01", "am_sys_02", "am_sys_03"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "managers" },
-  // ---- manager–team pairs
-  { id: "gap_ai_clarity", name: { he: "בהירות ציפיות", en: "AI clarity" }, kind: "scale_mean", group: "manager_team_pair", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["mg_clarity", "mx_clarity"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all", pair: { managerItemId: "mg_clarity", employeeItemId: "mx_clarity" } },
-  { id: "gap_experimentation", name: { he: "התנסות", en: "Experimentation" }, kind: "scale_mean", group: "manager_team_pair", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["mg_experiment", "mx_experiment"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all", pair: { managerItemId: "mg_experiment", employeeItemId: "mx_experiment" } },
-  { id: "gap_verification", name: { he: "אימות", en: "Verification" }, kind: "scale_mean", group: "manager_team_pair", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["mg_verify", "mx_verify"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all", pair: { managerItemId: "mg_verify", employeeItemId: "mx_verify" } },
-  { id: "gap_human_judgment", name: { he: "שיקול דעת אנושי", en: "Human judgment" }, kind: "scale_mean", group: "manager_team_pair", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["mg_judgment", "mx_judgment"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all", pair: { managerItemId: "mg_judgment", employeeItemId: "mx_judgment" } },
-  // ---- adoption shares and breadth
-  { id: "ai_daily_share", name: { he: "שימוש יומי", en: "Daily use" }, shortName: { he: "יומי", en: "Daily" }, kind: "share", group: "adoption", sourceType: "ngg_measure", scaleMin: 0, scaleMax: 100, itemCanonicalIds: ["ctx_ai_use_30d"], reverseCodedIds: [], minAnsweredRatio: 1, positiveValues: ["daily"], coreProfile: false, audience: "all" },
-  { id: "ai_nonuser_share", name: { he: "לא משתמשים", en: "Non-users" }, kind: "share", group: "adoption", sourceType: "ngg_measure", scaleMin: 0, scaleMax: 100, itemCanonicalIds: ["ctx_ai_use_30d"], reverseCodedIds: [], minAnsweredRatio: 1, positiveValues: ["none"], coreProfile: false, audience: "all" },
-  { id: "use_case_breadth", name: { he: "רוחב השימושים", en: "Use-case breadth" }, kind: "breadth", group: "adoption", sourceType: "ngg_measure", scaleMin: 0, scaleMax: 9, itemCanonicalIds: ["usecase_types"], reverseCodedIds: [], minAnsweredRatio: 1, coreProfile: false, audience: "all" },
-  { id: "pattern_assist", name: { he: "סיוע", en: "Assist" }, kind: "share", group: "adoption", sourceType: "ngg_measure", scaleMin: 0, scaleMax: 100, itemCanonicalIds: ["work_patterns"], reverseCodedIds: [], minAnsweredRatio: 1, positiveValues: ["assist"], coreProfile: false, audience: "all" },
-  { id: "pattern_collaborate", name: { he: "שיתוף", en: "Collaborate" }, kind: "share", group: "adoption", sourceType: "ngg_measure", scaleMin: 0, scaleMax: 100, itemCanonicalIds: ["work_patterns"], reverseCodedIds: [], minAnsweredRatio: 1, positiveValues: ["collaborate"], coreProfile: false, audience: "all" },
-  { id: "pattern_delegate", name: { he: "האצלה", en: "Delegate" }, kind: "share", group: "adoption", sourceType: "ngg_measure", scaleMin: 0, scaleMax: 100, itemCanonicalIds: ["work_patterns"], reverseCodedIds: [], minAnsweredRatio: 1, positiveValues: ["delegate"], coreProfile: false, audience: "all" },
-  { id: "pattern_orchestrate", name: { he: "תזמור", en: "Orchestrate" }, kind: "share", group: "adoption", sourceType: "ngg_measure", scaleMin: 0, scaleMax: 100, itemCanonicalIds: ["work_patterns"], reverseCodedIds: [], minAnsweredRatio: 1, positiveValues: ["orchestrate"], coreProfile: false, audience: "all" },
+  scaleMetric("enablement_access_resources", "גישה ומשאבים", "Access & resources", ["ORG_ACCESS_01", "ORG_ACCESS_02"], { group: "enablement_dimension", parentId: "organizational_ai_enablement", sourceType: "ngg_measure" }),
+  scaleMetric("enablement_policy_governance", "מדיניות וממשל", "Policy & governance", ["ORG_POLICY_01", "ORG_POLICY_02"], { group: "enablement_dimension", parentId: "organizational_ai_enablement", sourceType: "ngg_measure" }),
+  scaleMetric("enablement_knowledge_learning", "ידע ולמידה", "Knowledge & learning", ["ORG_LEARN_01", "ORG_LEARN_02"], { group: "enablement_dimension", parentId: "organizational_ai_enablement", sourceType: "ngg_measure" }),
+  scaleMetric("enablement_culture", "תרבות", "Culture", ["ORG_CULTURE_01", "ORG_CULTURE_02"], { group: "enablement_dimension", parentId: "organizational_ai_enablement", sourceType: "ngg_measure" }),
+  scaleMetric("enablement_strategy", "אסטרטגיה", "Strategy", ["ORG_STRATEGY_01", "ORG_STRATEGY_02"], { group: "enablement_dimension", parentId: "organizational_ai_enablement", sourceType: "ngg_measure" }),
+  // ---- team experience of management
+  scaleMetric("manager_experience", "חוויית הניהול", "Manager experience", range("MEXP_", 6), { group: "team_experience", sourceType: "ngg_measure", description: { he: "תפיסת הצוות את התמיכה הניהולית בעבודה עם AI.", en: "Team perception of management support for working with AI." } }),
+  // ---- agentic management (four dimensions, never collapsed by default)
+  scaleMetric("agentic_manage_self", "ניהול עצמי", "Manage Self", range("AM_SELF_", 4), { group: "agentic_management_dimension", sourceType: "ngg_measure", audience: "managers" }),
+  scaleMetric("agentic_manage_humans", "ניהול אנשים", "Manage Humans", range("AM_HUMANS_", 4), { group: "agentic_management_dimension", sourceType: "ngg_measure", audience: "managers" }),
+  scaleMetric("agentic_manage_ai", "ניהול AI", "Manage AI", range("AM_AI_", 4), { group: "agentic_management_dimension", sourceType: "ngg_measure", audience: "managers" }),
+  scaleMetric("agentic_manage_systems", "ניהול מערכות אדם–AI", "Manage Human–AI Systems", range("AM_SYSTEMS_", 6), { group: "agentic_management_dimension", sourceType: "ngg_measure", audience: "managers" }),
+  // ---- manager–team pairs (copy §19); gap = team − managers
+  ...([
+    ["gap_expectations", "בהירות ציפיות", "Clarity of expectations", "AM_HUMANS_01", "MEXP_01"],
+    ["gap_opportunities", "זיהוי הזדמנויות", "Opportunity identification", "AM_HUMANS_02", "MEXP_02"],
+    ["gap_experimentation", "אקלים התנסות", "Experimentation climate", "AM_HUMANS_03", "MEXP_03"],
+    ["gap_responsibility", "בהירות אחריות", "Responsibility clarity", "AM_SYSTEMS_02", "MEXP_04"],
+    ["gap_human_judgment", "שמירה על שיקול דעת אנושי", "Protecting human judgment", "AM_HUMANS_04", "MEXP_06"],
+  ] as Array<[string, string, string, string, string]>).map(([id, he, en, managerItemId, employeeItemId]) =>
+    m({ id, name: { he, en }, kind: "scale_mean", group: "manager_team_pair", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: [managerItemId, employeeItemId], pair: { managerItemId, employeeItemId } }),
+  ),
   // ---- outcomes
-  { id: "impact", name: { he: "השפעה ופריון", en: "Impact & Productivity" }, kind: "scale_mean", group: "impact", sourceType: "ngg_measure", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["imp_01", "imp_02", "imp_03", "imp_04"], reverseCodedIds: ["imp_04"], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
-  { id: "trust_ai", name: { he: "אמון ב-AI", en: "Trust in AI" }, kind: "scale_mean", group: "impact", sourceType: "validated", scaleMin: 1, scaleMax: 5, itemCanonicalIds: ["trust_ai_01", "trust_ai_02", "trust_ai_03", "trust_ai_04"], reverseCodedIds: [], minAnsweredRatio: 0.5, coreProfile: false, audience: "all" },
+  scaleMetric("impact_quality", "השפעה על איכות", "Impact on quality", ["IMPACT_QUALITY_01"], { group: "impact", sourceType: "ngg_measure", description: { he: "1 = פוגע משמעותית, 5 = משפר משמעותית. \"קשה לי להעריך\" אינו נכלל.", en: "1 = significantly harms, 5 = significantly improves. \"Hard to assess\" is excluded." } }),
+  scaleMetric("impact_time", "השפעה על זמן", "Impact on time", ["IMPACT_TIME_01"], { group: "impact", sourceType: "ngg_measure", description: { he: "1 = מגדיל משמעותית את הזמן, 5 = מקצר משמעותית. \"קשה לי להעריך\" אינו נכלל.", en: "1 = significantly increases time, 5 = significantly reduces it. \"Hard to assess\" is excluded." } }),
+  scaleMetric("impact_expansion", "הרחבת יכולות", "Capability expansion", ["IMPACT_EXPANSION_01"], { group: "impact", sourceType: "ngg_measure" }),
 ];
 
-/** Items whose answer distributions are shown on dashboards (barriers, work patterns, delegation map, usage). */
-export const DISTRIBUTION_ITEMS = ["ctx_ai_use_30d", "work_patterns", "usecase_types", "barriers_main", "opp_areas", "dm_current", "dm_opportunity", "access_approved_tools"];
+/** Items whose answer distributions are cached for dashboards. */
+export const DISTRIBUTION_ITEMS = ["USE_01", "USE_02", "USE_04", "USE_06", "IMPACT_QUALITY_01", "IMPACT_TIME_01", "BARRIER_01", "ENABLEMENT_NEED_01", "DELEGATION_MAP", "DELEGATION_OPPORTUNITY"];
 
-/** The default baseline template: recommended-core sections in order. */
+/** The default baseline template, in the routing order of copy §16. */
 export const BASELINE_TEMPLATE_SECTION_KEYS = [
-  "org_context",
-  "role_seniority",
-  "ai_usage",
-  "use_case_breadth",
-  "gen_ai_literacy",
-  "trust_in_ai",
-  "agentic_work",
-  "verification",
-  "org_enablement",
-  "manager_experience",
-  "agentic_management",
-  "delegation_map",
-  "impact_productivity",
-  "barriers",
-  "opportunities",
-  "open_questions",
+  "SECTION_CONTEXT",
+  "SECTION_AI_USAGE",
+  "SECTION_GAIL_17",
+  "SECTION_AGENTIC_WORK",
+  "SECTION_STIAS_3",
+  "SECTION_VERIFICATION",
+  "SECTION_ORG_ENABLEMENT",
+  "SECTION_MANAGER_EXPERIENCE",
+  "SECTION_AGENTIC_MANAGEMENT",
+  "SECTION_DELEGATION_MAP",
+  "SECTION_OUTCOMES_BARRIERS",
+  "SECTION_OPEN_TEXT",
 ];

@@ -1,6 +1,12 @@
 import type { AIProvider } from "./provider";
 import type { AnalyticalPayload, ExecutiveSummary, GoalSuggestions, MetricChangeExplanation, OpenTextThemes } from "@/domain/ai/contracts";
 import { hasSufficientEvidence } from "@/domain/ai/payload";
+import type { MetricPayload } from "@/domain/ai/contracts";
+
+/** Position within the metric's own range (0–1), so 1–5, 1–6 and 1–7 scales can be ranked together. */
+const relative = (m: MetricPayload) => ((m.score ?? 0) - m.scaleMin) / Math.max(1, m.scaleMax - m.scaleMin);
+/** Core profile metrics that have a desirable direction (trust is interpreted in context, never ranked). */
+const rankableCore = (metrics: MetricPayload[]) => metrics.filter((m) => m.score != null && !m.suppressed && m.coreProfile && !m.neutralDirection && !m.percent);
 
 /**
  * Deterministic, rule-based provider. It only ever restates numbers from the payload, so it is safe
@@ -16,12 +22,13 @@ export class MockAIProvider implements AIProvider {
       return { summary: msg, currentState: msg, biggestChange: msg, primaryRisk: msg, recommendedPriority: msg, keyChanges: [], risks: [], opportunities: [], insufficientEvidence: true };
     }
     const scored = p.metrics.filter((m) => m.score != null && !m.suppressed);
-    const core = scored.filter((m) => ["ai_usage", "ai_literacy", "agentic_work", "verification", "org_enablement", "agentic_management"].includes(m.metricId));
-    const strongest = [...core].sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
-    const weakest = [...core].sort((a, b) => (a.score ?? 0) - (b.score ?? 0))[0];
-    // Only scale metrics (1–5) qualify as "changes"; share metrics are percentages and would dominate.
-    const withDelta = scored.filter((m) => m.delta != null && m.scaleMax === 5);
-    const biggest = [...withDelta].sort((a, b) => Math.abs(b.delta ?? 0) - Math.abs(a.delta ?? 0))[0];
+    const core = rankableCore(p.metrics);
+    const strongest = [...core].sort((a, b) => relative(b) - relative(a))[0];
+    const weakest = [...core].sort((a, b) => relative(a) - relative(b))[0];
+    // Only scale metrics qualify as "changes" (percentages would dominate); deltas are compared relative to range.
+    const withDelta = scored.filter((m) => m.delta != null && !m.percent);
+    const rel = (m: MetricPayload) => Math.abs(m.delta ?? 0) / Math.max(1, m.scaleMax - m.scaleMin);
+    const biggest = [...withDelta].sort((a, b) => rel(b) - rel(a))[0];
     const worstGap = [...p.gaps].filter((g) => g.gap != null).sort((a, b) => (a.gap ?? 0) - (b.gap ?? 0))[0];
     const f = (n: number | null | undefined) => (n == null ? "—" : n.toFixed(1));
     const d = (n: number | null | undefined) => (n == null ? "—" : `${n > 0 ? "+" : ""}${n.toFixed(2)}`);
@@ -88,7 +95,7 @@ export class MockAIProvider implements AIProvider {
     const he = p.locale === "he";
     if (!hasSufficientEvidence(p)) return { goals: [{ title: he ? "אין מספיק ראיות" : "Insufficient evidence", rationale: he ? "מספר המשיבים נמוך מהסף." : "Respondents below threshold.", relatedMetrics: [], recommendedActions: [he ? "להמתין למדידה נוספת" : "Wait for another measurement"], successEvidence: [], suggestedReviewPeriod: "—" }], insufficientEvidence: true };
     const worstGap = [...p.gaps].filter((g) => g.gap != null).sort((a, b) => (a.gap ?? 0) - (b.gap ?? 0))[0];
-    const core = p.metrics.filter((m) => m.score != null && ["ai_usage", "ai_literacy", "agentic_work", "verification", "org_enablement", "agentic_management"].includes(m.metricId)).sort((a, b) => (a.score ?? 0) - (b.score ?? 0));
+    const core = rankableCore(p.metrics).sort((a, b) => relative(a) - relative(b));
     const goals: GoalSuggestions["goals"] = [];
     if (worstGap && worstGap.gap != null && worstGap.gap <= -0.3) {
       goals.push({

@@ -47,7 +47,7 @@ export default async function ResultsPage({ params, searchParams }: PageProps<"/
   const dist = (id: string) => view.distributions.find((d) => d.itemCanonicalId === id);
   const baseDist = (id: string) => view.baselineDistributions.find((d) => d.itemCanonicalId === id) ?? null;
   const q = (id: string) => (definition ? findQuestion(definition, id) : undefined);
-  const hasManagers = view.compared.some((c) => c.metricId === "agentic_management" && !c.current.suppressed);
+  const hasManagers = view.compared.some((c) => c.metricId.startsWith("agentic_manage_") && !c.current.suppressed);
   const notComputed = view.computedAt == null;
   const affected = view.comparableMetricIds ? view.metrics.filter((m) => m.group === "core" && !view.comparableMetricIds!.has(m.id)).length : 0;
 
@@ -91,18 +91,18 @@ export default async function ResultsPage({ params, searchParams }: PageProps<"/
         </Tile>
         <Tile className="flex-[1_1_320px]">
           <TileTitle trailing={<span className="text-[12px] text-text-muted">{r.patternsHelp}</span>}>{r.patterns}</TileTitle>
-          <DistributionBars distribution={dist("work_patterns")} question={q("work_patterns")} locale={locale} threshold={threshold} emphasize baseline={baseDist("work_patterns")} />
+          <MetricBars metrics={byGroup("adoption_funnel")} compared={view.compared} locale={locale} t={t} baselineCode={view.baseline?.code} currentCode={selected.code} threshold={threshold} partial={data.partial} showN={false} />
         </Tile>
       </div>
 
       <div className="flex flex-wrap gap-4">
         <Tile className="flex-[1_1_360px]">
           <TileTitle>{r.literacyDims}</TileTitle>
-          <MetricBars metrics={byGroup("ai_literacy_dimension")} compared={view.compared} locale={locale} t={t} baselineCode={view.baseline?.code} currentCode={selected.code} threshold={threshold} partial={data.partial} showN={false} />
+          <MetricBars metrics={[...byGroup("ai_literacy_dimension"), ...byGroup("agentic_work_dimension"), ...byGroup("trust")]} compared={view.compared} locale={locale} t={t} baselineCode={view.baseline?.code} currentCode={selected.code} threshold={threshold} partial={data.partial} showN={false} />
         </Tile>
         <Tile className="flex-[1_1_360px]">
           <TileTitle>{r.enablementDims}</TileTitle>
-          <MetricBars metrics={byGroup("enablement_dimension")} compared={view.compared} locale={locale} t={t} baselineCode={view.baseline?.code} currentCode={selected.code} threshold={threshold} partial={data.partial} showN={false} />
+          <MetricBars metrics={[...byGroup("enablement_dimension"), ...byGroup("team_experience"), ...byGroup("impact")]} compared={view.compared} locale={locale} t={t} baselineCode={view.baseline?.code} currentCode={selected.code} threshold={threshold} partial={data.partial} showN={false} />
         </Tile>
       </div>
 
@@ -124,15 +124,15 @@ export default async function ResultsPage({ params, searchParams }: PageProps<"/
       <div className="flex flex-wrap gap-4">
         <Tile className="flex-[1_1_300px]">
           <TileTitle>{r.usage}</TileTitle>
-          <DistributionBars distribution={dist("ctx_ai_use_30d")} question={q("ctx_ai_use_30d")} locale={locale} threshold={threshold} baseline={baseDist("ctx_ai_use_30d")} />
+          <DistributionBars distribution={dist("USE_01")} question={q("USE_01")} locale={locale} threshold={threshold} baseline={baseDist("USE_01")} />
         </Tile>
         <Tile className="flex-[1_1_300px]">
           <TileTitle>{r.useCases}</TileTitle>
-          <DistributionBars distribution={dist("usecase_types")} question={q("usecase_types")} locale={locale} threshold={threshold} order="desc" baseline={baseDist("usecase_types")} />
+          <DistributionBars distribution={dist("USE_04")} question={q("USE_04")} locale={locale} threshold={threshold} order="desc" baseline={baseDist("USE_04")} />
         </Tile>
         <Tile className="flex-[1_1_300px]">
           <TileTitle>{r.barriers}</TileTitle>
-          <DistributionBars distribution={dist("barriers_main")} question={q("barriers_main")} locale={locale} threshold={threshold} order="desc" limit={6} baseline={baseDist("barriers_main")} />
+          <DistributionBars distribution={dist("BARRIER_01")} question={q("BARRIER_01")} locale={locale} threshold={threshold} order="desc" limit={6} baseline={baseDist("BARRIER_01")} />
         </Tile>
       </div>
     </>

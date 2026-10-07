@@ -9,6 +9,7 @@ import { Notice } from "@/components/ui/Notice";
 import { lt } from "@/domain/shared/localized";
 import { rulesPass, type RoutingContext } from "@/domain/questionnaire/logic";
 import type { QuestionDefinition } from "@/domain/questionnaire/definition";
+import { pipe } from "@/domain/questionnaire/piping";
 import type { ResponseValue } from "@/server/db/schema";
 import type { Dictionary } from "@/lib/i18n";
 import type { Locale } from "@/domain/shared/enums";
@@ -22,6 +23,7 @@ export function SectionForm({
   answers,
   attributes,
   missing,
+  primaryAiTool,
   t,
   locale,
 }: {
@@ -34,6 +36,8 @@ export function SectionForm({
   answers: Record<string, ResponseValue>;
   attributes: RoutingContext["attributes"];
   missing: boolean;
+  /** Resolved {{primary_ai_tool}} for S-TIAS wording; fallback wording is used when undefined. */
+  primaryAiTool?: string;
   t: Dictionary["survey"];
   locale: Locale;
 }) {
@@ -55,7 +59,14 @@ export function SectionForm({
     },
     [token],
   );
-  const labels = { pnta: t.pnta, chooseMany: t.chooseMany, chooseOne: t.chooseOne, number: t.number, textPlaceholder: t.textPlaceholder };
+  const labels = { pnta: t.pnta, chooseMany: t.chooseMany, chooseOne: t.chooseOne, number: t.number, textPlaceholder: t.textPlaceholder, chooseUpTo: t.chooseUpTo };
+  // Options piped from an earlier answer on this page (USE_03 lists only the tools chosen in USE_02).
+  const optionsFor = (q: QuestionDefinition) => {
+    if (!q.optionsFromAnswer) return undefined;
+    const earlier = live[q.optionsFromAnswer];
+    const chosen = new Set(Array.isArray(earlier) ? (earlier as string[]) : []);
+    return (q.options ?? []).filter((o) => chosen.has(o.value));
+  };
   return (
     <form action={action} className="flex flex-col gap-6">
       <input type="hidden" name="token" value={token} />
@@ -68,11 +79,20 @@ export function SectionForm({
               {i + 1} / {visible.length}
             </p>
             <h2 className="mb-1 text-[18px] font-bold leading-snug">
-              {lt(q.text, locale)}
+              {pipe(q.text, q.fallbackText, locale, { primaryAiTool })}
               {q.required ? <span className="ms-1 text-accent-text" aria-hidden="true">*</span> : null}
             </h2>
             {q.helpText ? <p className="mb-3 text-[13px] text-text-muted">{lt(q.helpText, locale)}</p> : <div className="mb-3" />}
-            <QuestionInput question={q} locale={locale} initial={answers[q.canonicalId]} hasAnswer={q.canonicalId in answers} labels={labels} onAutosave={autosave} />
+            <QuestionInput
+              key={q.optionsFromAnswer ? `${q.id}:${JSON.stringify(live[q.optionsFromAnswer] ?? null)}` : q.id}
+              question={q}
+              options={optionsFor(q)}
+              locale={locale}
+              initial={answers[q.canonicalId]}
+              hasAnswer={q.canonicalId in answers}
+              labels={labels}
+              onAutosave={autosave}
+            />
           </li>
         ))}
       </ol>

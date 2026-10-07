@@ -11,12 +11,16 @@ export const dynamic = "force-dynamic";
 
 const GROUP_LABELS: Record<MetricGroup, { he: string; en: string }> = {
   core: { he: "פרופיל ליבה", en: "Core profile" },
-  ai_literacy_dimension: { he: "ממדי אוריינות AI", en: "AI literacy dimensions" },
-  agentic_management_dimension: { he: "ממדי ניהול אג׳נטי", en: "Agentic management dimensions" },
+  adoption: { he: "שימוש ואימוץ", en: "Use and adoption" },
+  ai_literacy_dimension: { he: "ממדי GAIL", en: "GAIL dimensions" },
+  agentic_work_dimension: { he: "ממדי עבודה אג׳נטית", en: "Agentic work dimensions" },
+  adoption_funnel: { he: "משפך עומק העבודה", en: "Depth-of-work funnel" },
+  trust: { he: "אמון", en: "Trust" },
   enablement_dimension: { he: "ממדי אפשור ארגוני", en: "Enablement dimensions" },
+  team_experience: { he: "חוויית הצוות", en: "Team experience" },
+  agentic_management_dimension: { he: "ממדי ניהול בעידן AI", en: "Agentic management dimensions" },
   manager_team_pair: { he: "פערי מנהל–צוות", en: "Manager–team pairs" },
-  adoption: { he: "אימוץ", en: "Adoption" },
-  impact: { he: "תוצאות", en: "Outcomes" },
+  impact: { he: "השפעה", en: "Impact" },
 };
 
 export default async function MeasurementsPage() {
@@ -48,7 +52,9 @@ export default async function MeasurementsPage() {
                   </div>
                   <p className="text-[12px] text-text-muted" dir="ltr">
                     {m.kind} · {m.scaleMin}–{m.scaleMax}
+                    {m.threshold != null ? ` · ≥${m.threshold}` : ""}
                     {m.audience !== "all" ? ` · ${m.audience}` : ""}
+                    {m.neutralDirection ? " · neutral" : ""}
                   </p>
                   <p className="text-[11px] text-text-muted" dir="ltr">
                     {m.pair ? `${m.pair.managerItemId} ↔ ${m.pair.employeeItemId}` : `${m.itemCanonicalIds.length} ${t.builder.items}: ${m.itemCanonicalIds.join(", ")}`}

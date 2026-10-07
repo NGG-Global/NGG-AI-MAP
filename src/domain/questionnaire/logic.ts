@@ -41,6 +41,8 @@ export function evaluateRule(rule: DisplayRule, ctx: RoutingContext): boolean {
       return asList(actual).some((v) => asList(rule.value).includes(v));
     case "not_in":
       return !asList(actual).some((v) => asList(rule.value).includes(v));
+    case "count_gt":
+      return asList(actual).length > Number(rule.value ?? 0);
   }
 }
 
@@ -95,8 +97,8 @@ export interface QuestionnaireSummary {
 }
 
 const PERSONAS: Record<"employee" | "manager", RoutingContext> = {
-  employee: { attributes: { is_manager: false }, answers: { ctx_is_manager: "no", ctx_ai_use_30d: "weekly" } },
-  manager: { attributes: { is_manager: true }, answers: { ctx_is_manager: "yes", ctx_ai_use_30d: "weekly" } },
+  employee: { attributes: { is_manager: false }, answers: { CTX_03: "no", USE_01: "days_1_2", USE_02: ["chatgpt", "copilot"], MEXP_SCREEN_01: "yes" } },
+  manager: { attributes: { is_manager: true }, answers: { CTX_03: "yes", USE_01: "days_1_2", USE_02: ["chatgpt", "copilot"], MEXP_SCREEN_01: "yes" } },
 };
 
 export function summarizeQuestionnaire(def: QuestionnaireDefinition): QuestionnaireSummary {
@@ -128,7 +130,7 @@ export function summarizeQuestionnaire(def: QuestionnaireDefinition): Questionna
 export const PREVIEW_PERSONAS = {
   employee: PERSONAS.employee,
   manager: PERSONAS.manager,
-  non_ai_user: { attributes: { is_manager: false }, answers: { ctx_is_manager: "no", ctx_ai_use_30d: "none" } } satisfies RoutingContext,
+  non_ai_user: { attributes: { is_manager: false }, answers: { CTX_03: "no", USE_01: "none", MEXP_SCREEN_01: "yes" } } satisfies RoutingContext,
 };
 export type PreviewPersona = keyof typeof PREVIEW_PERSONAS;
 

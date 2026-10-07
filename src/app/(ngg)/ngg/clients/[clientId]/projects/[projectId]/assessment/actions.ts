@@ -168,7 +168,7 @@ export async function updateIntroAction(_prev: ActionState, formData: FormData):
     await updateIntro(ctx, field(formData, "versionId"), {
       title: { he: field(formData, "title"), en: field(formData, "titleEn") || undefined },
       intro: { he: field(formData, "intro"), en: field(formData, "introEn") || undefined },
-      privacyNote: { he: field(formData, "privacyNote"), en: field(formData, "privacyNoteEn") || undefined },
+      completionNote: { he: field(formData, "completionNote"), en: field(formData, "completionNoteEn") || undefined },
     });
     revalidatePath(basePath(formData));
     return { ok: true, message: ctx.user.locale === "he" ? "נשמר" : "Saved" };

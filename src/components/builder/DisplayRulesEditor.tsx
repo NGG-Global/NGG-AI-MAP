@@ -5,8 +5,8 @@ import type { DisplayRule } from "@/domain/questionnaire/definition";
 import type { Dictionary } from "@/lib/i18n";
 import { Button } from "@/components/ui/Button";
 
-const FIELD_KEYS = ["attr:is_manager", "q:ctx_ai_use_30d", "q:ctx_department", "q:ctx_role_family", "q:ctx_seniority"] as const;
-const OPERATORS = ["eq", "neq", "in", "not_in", "truthy", "falsy"] as const;
+const FIELD_KEYS = ["attr:is_manager", "q:CTX_01", "q:CTX_02", "q:CTX_03", "q:CTX_05", "q:USE_01", "q:USE_02", "q:MEXP_SCREEN_01"] as const;
+const OPERATORS = ["eq", "neq", "in", "not_in", "truthy", "falsy", "count_gt"] as const;
 
 /** Field → Operator → Value rows, serialised into a hidden `rules` JSON field (spec §14). */
 export function DisplayRulesEditor({ initial, t, valueOptions }: { initial: DisplayRule[]; t: Dictionary["builder"]; valueOptions: Record<string, string[]> }) {
@@ -24,6 +24,7 @@ export function DisplayRulesEditor({ initial, t, valueOptions }: { initial: Disp
             <label className="text-[11px] font-semibold text-text-muted">
               {t.field}
               <select className={`${control} mt-1 w-full`} value={rule.field} onChange={(e) => update(index, { field: e.target.value, value: undefined })}>
+                {(FIELD_KEYS as readonly string[]).includes(rule.field) ? null : <option value={rule.field}>{rule.field}</option>}
                 {FIELD_KEYS.map((key) => (
                   <option key={key} value={key}>
                     {t.fields[key]}
@@ -44,7 +45,7 @@ export function DisplayRulesEditor({ initial, t, valueOptions }: { initial: Disp
             <label className="text-[11px] font-semibold text-text-muted">
               {t.value}
               {needsValue ? (
-                options.length ? (
+                options.length && rule.operator !== "count_gt" ? (
                   <select className={`${control} mt-1 w-full`} value={String(rule.value ?? "")} onChange={(e) => update(index, { value: e.target.value })}>
                     <option value="">—</option>
                     {options.map((o) => (

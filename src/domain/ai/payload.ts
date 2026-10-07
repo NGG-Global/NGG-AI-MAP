@@ -1,6 +1,6 @@
 import type { AnalyticalPayload, GapPayload, MetricPayload } from "./contracts";
 import type { ComparedMetric, GapResult } from "@/domain/measurement/engine";
-import type { MetricConfig } from "@/domain/measurement/config";
+import { isPercentMetric, type MetricConfig } from "@/domain/measurement/config";
 import { lt } from "@/domain/shared/localized";
 import type { Locale } from "@/domain/shared/enums";
 
@@ -40,6 +40,9 @@ export function buildAnalyticalPayload(input: PayloadInput): AnalyticalPayload {
         delta: c.comparable ? c.delta : null,
         comparable: c.comparable,
         suppressed: c.current.suppressed,
+        coreProfile: config.coreProfile,
+        neutralDirection: config.neutralDirection,
+        percent: isPercentMetric(config),
       } satisfies MetricPayload;
     })
     .filter((m): m is MetricPayload => m != null);

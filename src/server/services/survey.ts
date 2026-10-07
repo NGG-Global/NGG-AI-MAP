@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "@/server/db/connection";
 import { clients, projects, questionnaireVersions, respondents, responses, waves, type Client, type Respondent, type ResponseValue, type Wave } from "@/server/db/schema";
 import { generateToken, hashToken } from "@/server/auth/tokens";
@@ -122,7 +122,9 @@ export function computeProgress(definition: QuestionnaireDefinition, respondent:
     let sectionComplete = true;
     for (const q of entry.questions) {
       total += 1;
-      const has = q.canonicalId in answers;
+      const value = answers[q.canonicalId];
+      // An empty multi-select does not count as an answer.
+      const has = q.canonicalId in answers && !(Array.isArray(value) && value.length === 0);
       if (has) answered += 1;
       if (q.required && !has) sectionComplete = false;
     }
@@ -137,8 +139,23 @@ export class AnswerValidationError extends Error {
   }
 }
 
-/** Validates one raw value against its question definition. `null` = prefer not to answer. */
-export function validateAnswer(question: QuestionDefinition, raw: unknown): ResponseValue {
+/** The value stored for a scale item's non-numeric option ("Not relevant", "Don't know"). */
+export const NA_VALUE = "na";
+
+/** Options a respondent may choose, narrowed to an earlier answer when the question pipes them (USE_03). */
+export function availableOptions(question: QuestionDefinition, answers: Record<string, ResponseValue> = {}) {
+  const options = question.options ?? [];
+  if (!question.optionsFromAnswer) return options;
+  const earlier = answers[question.optionsFromAnswer];
+  const chosen = new Set(Array.isArray(earlier) ? earlier : []);
+  return options.filter((o) => chosen.has(o.value));
+}
+
+/**
+ * Validates one raw value against its question definition. `null` = prefer not to answer.
+ * `answers` holds the respondent's earlier answers, for questions whose options depend on them.
+ */
+export function validateAnswer(question: QuestionDefinition, raw: unknown, answers: Record<string, ResponseValue> = {}): ResponseValue {
   if (raw === null || raw === "__pnta__") {
     if (!question.allowPreferNotToAnswer) throw new AnswerValidationError(question.canonicalId, "pnta_not_allowed");
     return null;
@@ -146,6 +163,10 @@ export function validateAnswer(question: QuestionDefinition, raw: unknown): Resp
   switch (question.type) {
     case "likert_5":
     case "likert_7": {
+      if (raw === NA_VALUE) {
+        if (!question.naOption) throw new AnswerValidationError(question.canonicalId, "na_not_allowed");
+        return NA_VALUE;
+      }
       const n = Number(raw);
       const { min, max } = question.scale ?? { min: 1, max: question.type === "likert_5" ? 5 : 7 };
       if (!Number.isInteger(n) || n < min || n > max) throw new AnswerValidationError(question.canonicalId, "scale");
@@ -158,13 +179,18 @@ export function validateAnswer(question: QuestionDefinition, raw: unknown): Resp
     }
     case "single_choice": {
       const v = String(raw);
-      if (!question.options?.some((o) => o.value === v)) throw new AnswerValidationError(question.canonicalId, "option");
+      if (!availableOptions(question, answers).some((o) => o.value === v)) throw new AnswerValidationError(question.canonicalId, "option");
       return v;
     }
     case "multi_select": {
-      const list = Array.isArray(raw) ? raw.map(String) : String(raw).split(",").filter(Boolean);
-      if (list.some((v) => !question.options?.some((o) => o.value === v))) throw new AnswerValidationError(question.canonicalId, "option");
-      return [...new Set(list)];
+      const list = [...new Set(Array.isArray(raw) ? raw.map(String) : String(raw).split(",").filter(Boolean))];
+      const options = question.options ?? [];
+      if (list.some((v) => !options.some((o) => o.value === v))) throw new AnswerValidationError(question.canonicalId, "option");
+      // An exclusive option ("No significant barrier") cannot be combined with any other selection.
+      const exclusive = list.filter((v) => options.find((o) => o.value === v)?.exclusive);
+      if (exclusive.length > 0 && list.length > 1) throw new AnswerValidationError(question.canonicalId, "exclusive");
+      if (question.maxSelections && list.length > question.maxSelections) throw new AnswerValidationError(question.canonicalId, "max_selections");
+      return list;
     }
     case "matrix": {
       const obj = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
@@ -199,21 +225,41 @@ export async function saveAnswers(
   const { respondent, definition } = access;
   let answers = await loadAnswers(db, respondent.id);
   let attributes: SegmentAttributes = { ...respondent.segmentAttributes };
-  const routed = routeQuestionnaire(definition, { attributes: attributes as RoutingContext["attributes"], answers });
-  const visible = new Map(routed.flatMap((e) => e.questions.map((q) => [q.canonicalId, q] as const)));
   const now = new Date();
-  for (const [canonicalId, raw] of Object.entries(input)) {
-    const question = visible.get(canonicalId);
-    if (!question) continue;
-    const value = validateAnswer(question, raw);
-    await db
-      .insert(responses)
-      .values({ id: newId(), respondentId: respondent.id, waveId: respondent.waveId, questionCanonicalId: canonicalId, questionVersion: question.version, value, answeredAt: now })
-      .onConflictDoUpdate({ target: [responses.respondentId, responses.questionCanonicalId], set: { value, questionVersion: question.version, answeredAt: now } });
-    answers = { ...answers, [canonicalId]: value };
-    if (question.segmentKey) {
-      attributes = applySegment(attributes, question.segmentKey, value);
+  const pending = new Map(Object.entries(input));
+  // Several passes: an answer on this page can reveal a follow-up on the same page (CTX_03 → CTX_04).
+  for (let pass = 0; pass < 10 && pending.size > 0; pass += 1) {
+    const routed = routeQuestionnaire(definition, { attributes: attributes as RoutingContext["attributes"], answers });
+    const visible = new Map(routed.flatMap((e) => e.questions.map((q) => [q.canonicalId, q] as const)));
+    let accepted = 0;
+    for (const [canonicalId, raw] of pending) {
+      const question = visible.get(canonicalId);
+      if (!question) continue;
+      pending.delete(canonicalId);
+      accepted += 1;
+      const value = validateAnswer(question, raw, answers);
+      await db
+        .insert(responses)
+        .values({ id: newId(), respondentId: respondent.id, waveId: respondent.waveId, questionCanonicalId: canonicalId, questionVersion: question.version, value, answeredAt: now })
+        .onConflictDoUpdate({ target: [responses.respondentId, responses.questionCanonicalId], set: { value, questionVersion: question.version, answeredAt: now } });
+      answers = { ...answers, [canonicalId]: value };
+      if (question.segmentKey) attributes = applySegment(attributes, question.segmentKey, value);
     }
+    if (accepted === 0) break;
+  }
+  // Answers to questions the respondent can no longer see (e.g. after changing USE_01 to "none") are
+  // discarded so hidden items never reach the measurement engine. The same applies to a piped choice
+  // whose source answer changed (USE_03 after editing USE_02).
+  const visibleNow = routeQuestionnaire(definition, { attributes: attributes as RoutingContext["attributes"], answers }).flatMap((e) => e.questions);
+  const stillValid = new Set(
+    visibleNow
+      .filter((q) => !q.optionsFromAnswer || typeof answers[q.canonicalId] !== "string" || availableOptions(q, answers).some((o) => o.value === answers[q.canonicalId]))
+      .map((q) => q.canonicalId),
+  );
+  const stale = Object.keys(answers).filter((id) => !stillValid.has(id));
+  if (stale.length > 0) {
+    await db.delete(responses).where(and(eq(responses.respondentId, respondent.id), inArray(responses.questionCanonicalId, stale)));
+    answers = Object.fromEntries(Object.entries(answers).filter(([id]) => stillValid.has(id)));
   }
   const [updated] = await db
     .update(respondents)

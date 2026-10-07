@@ -78,6 +78,12 @@ export const metricPayloadSchema = z.object({
   delta: z.number().nullable(),
   comparable: z.boolean(),
   suppressed: z.boolean(),
+  /** Headline metric of the core profile. */
+  coreProfile: z.boolean().default(false),
+  /** No "better" direction (e.g. trust in AI): describe changes without judging them good or bad. */
+  neutralDirection: z.boolean().default(false),
+  /** Share metrics are percentages (0–100), not scale scores. */
+  percent: z.boolean().default(false),
 });
 export type MetricPayload = z.infer<typeof metricPayloadSchema>;
 

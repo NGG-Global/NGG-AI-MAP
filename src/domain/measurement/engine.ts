@@ -152,6 +152,12 @@ export function computeMetric(metric: MetricConfig, def: QuestionnaireDefinition
       const list = Array.isArray(v) ? v : [String(v)];
       return list.some((x) => metric.positiveValues?.includes(x)) ? 100 : 0;
     });
+  } else if (metric.kind === "threshold_share") {
+    const threshold = metric.threshold ?? 4;
+    values = pool
+      .map((r) => respondentScaleScore({ ...metric, kind: "scale_mean" }, questions, r))
+      .filter((v): v is number => v != null)
+      .map((v) => (v >= threshold ? 100 : 0));
   } else if (metric.kind === "breadth") {
     const id = metric.itemCanonicalIds[0]!;
     values = pool.filter((r) => Array.isArray(r.answers[id])).map((r) => (r.answers[id] as string[]).length);
@@ -243,7 +249,9 @@ export function computeGap(metric: MetricConfig, def: QuestionnaireDefinition, r
   const mq = questions.get(metric.pair.managerItemId);
   const eq = questions.get(metric.pair.employeeItemId);
   const managers = respondents.filter((r) => inSegment(r, seg) && isManager(r) === true).map((r) => itemScore(mq, r.answers[metric.pair!.managerItemId], false, metric)).filter((v): v is number => v != null);
-  const team = respondents.filter((r) => inSegment(r, seg) && isManager(r) === false).map((r) => itemScore(eq, r.answers[metric.pair!.employeeItemId], false, metric)).filter((v): v is number => v != null);
+  // Team experience: everyone who rated their own direct manager. Managers answer this too, about
+  // their own manager (Master Questionnaire Copy §10), so the side is defined by the item, not the role.
+  const team = respondents.filter((r) => inSegment(r, seg)).map((r) => itemScore(eq, r.answers[metric.pair!.employeeItemId], false, metric)).filter((v): v is number => v != null);
   const suppressed = managers.length < threshold || team.length < threshold;
   const managerScore = suppressed ? null : round(mean(managers));
   const teamScore = suppressed ? null : round(mean(team));

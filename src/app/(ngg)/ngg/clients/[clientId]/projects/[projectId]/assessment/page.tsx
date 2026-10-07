@@ -61,13 +61,10 @@ export default async function AssessmentPage({ params, searchParams }: PageProps
   const selectedId = typeof sp.section === "string" ? sp.section : definition.sections[0]?.id;
   const selectedIndex = definition.sections.findIndex((s) => s.id === selectedId);
   const selected = selectedIndex >= 0 ? definition.sections[selectedIndex]! : null;
-  const taxonomy = workspace.client.segmentTaxonomy;
-  const valueOptions: Record<string, string[]> = {
-    "q:ctx_ai_use_30d": ["none", "once_twice", "weekly", "several_weekly", "daily"],
-    "q:ctx_department": taxonomy.departments,
-    "q:ctx_role_family": taxonomy.roleFamilies,
-    "q:ctx_seniority": taxonomy.seniorityGroups,
-  };
+  // Rule values come from the questions in this definition, so they always match what respondents can answer.
+  const valueOptions: Record<string, string[]> = Object.fromEntries(
+    definition.sections.flatMap((s) => s.questions).filter((q) => q.options?.length).map((q) => [`q:${q.canonicalId}`, q.options!.map((o) => o.value)]),
+  );
   const sectionComparability = (key: string): SectionComparabilityInfo => {
     if (!baseline) return { level: "new" as const, baselineCode: null };
     if (!baselineKeys.has(key)) return { level: "new" as const, baselineCode: baseline.waveCode };
